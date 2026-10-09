@@ -1,0 +1,21 @@
+{
+  "name": "whatsapp-minibot",
+  "version": "1.0.0",
+  "description": "WhatsApp bot with pairing site, plugin system, and mini games",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "pair": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.18",
+    "express": "^4.21.2",
+    "pino": "^9.6.0",
+    "qrcode": "^1.5.4"
+  },
+  "license": "MIT"
+}

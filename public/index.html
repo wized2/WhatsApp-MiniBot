@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WhatsApp MiniBot — Pair</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main class="card">
+    <header>
+      <div class="logo">WA</div>
+      <div>
+        <h1 id="botName">MiniBot</h1>
+        <p class="tag" id="tagline">Plugins · Mini-apps · Games</p>
+      </div>
+    </header>
+
+    <section class="status">
+      <span class="dot" id="dot"></span>
+      <span id="statusText">Loading…</span>
+    </section>
+
+    <section class="panel" id="qrPanel">
+      <h2>Scan QR</h2>
+      <img id="qr" alt="QR code" hidden />
+      <p class="hint">Open WhatsApp → Linked devices → Link a device</p>
+    </section>
+
+    <section class="panel">
+      <h2>Pairing code</h2>
+      <label class="field">
+        <span>Phone (country code, no +)</span>
+        <input id="number" inputmode="numeric" placeholder="923001234567" />
+      </label>
+      <button id="btnCode" type="button">Get code</button>
+      <div class="code" id="codeBox" hidden>
+        <span id="codeText">----</span>
+        <button id="btnCopy" type="button" class="ghost">Copy</button>
+      </div>
+      <p class="hint">WhatsApp → Linked devices → Link with phone number instead</p>
+    </section>
+
+    <footer>
+      <small>Session stays on this machine · edit <code>config.js</code></small>
+    </footer>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
