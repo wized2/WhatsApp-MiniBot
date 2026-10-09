@@ -20,4 +20,7 @@ module.exports = {
 
   themeColor: '#25D366',
   tagline: 'Plugins · Mini-apps · Games inside WhatsApp',
+
+  // Rich HTML mini-app envelope (internal WA field — not your account JID)
+  richBotJid: process.env.RICH_BOT_JID || '867051314767696@bot',
 };

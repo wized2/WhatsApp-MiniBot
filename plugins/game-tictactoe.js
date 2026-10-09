@@ -1,133 +1,71 @@
-/** Tic-tac-toe vs bot */
-const games = new Map();
+const { sendHtmlApp } = require('../lib/htmlTransport');
 
-function empty() {
-  return [
-    [' ', ' ', ' '],
-    [' ', ' ', ' '],
-    [' ', ' ', ' '],
-  ];
-}
-
-function boardText(b) {
-  const cell = (r, c) => (b[r][c] === ' ' ? '·' : b[r][c]);
-  return (
-    `\`\`\`\n` +
-    `${cell(0, 0)} | ${cell(0, 1)} | ${cell(0, 2)}\n` +
-    `---------\n` +
-    `${cell(1, 0)} | ${cell(1, 1)} | ${cell(1, 2)}\n` +
-    `---------\n` +
-    `${cell(2, 0)} | ${cell(2, 1)} | ${cell(2, 2)}\n` +
-    `\`\`\``
-  );
-}
-
-function winner(b) {
-  const lines = [
-    [b[0][0], b[0][1], b[0][2]],
-    [b[1][0], b[1][1], b[1][2]],
-    [b[2][0], b[2][1], b[2][2]],
-    [b[0][0], b[1][0], b[2][0]],
-    [b[0][1], b[1][1], b[2][1]],
-    [b[0][2], b[1][2], b[2][2]],
-    [b[0][0], b[1][1], b[2][2]],
-    [b[0][2], b[1][1], b[2][0]],
-  ];
-  for (const L of lines) {
-    if (L[0] !== ' ' && L[0] === L[1] && L[1] === L[2]) return L[0];
-  }
-  if (b.flat().every((x) => x !== ' ')) return 'draw';
-  return null;
-}
-
-function botMove(b) {
-  // win / block / center / corner / side
-  const tryPlace = (mark) => {
-    for (let r = 0; r < 3; r++) {
-      for (let c = 0; c < 3; c++) {
-        if (b[r][c] !== ' ') continue;
-        b[r][c] = mark;
-        const w = winner(b);
-        b[r][c] = ' ';
-        if (w === mark) return [r, c];
-      }
+const TTT_HTML = `<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<style>
+*{box-sizing:border-box;touch-action:manipulation}
+body{margin:0;background:#0b141a;color:#e9edef;font-family:system-ui,sans-serif}
+.wrap{padding:12px;max-width:360px;margin:0 auto;text-align:center}
+h3{margin:0 0 8px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px auto;max-width:240px}
+.cell{aspect-ratio:1;border:0;border-radius:14px;background:#1f2c34;color:#e9edef;font-size:28px;font-weight:700}
+.cell:disabled{opacity:.9}
+.status{font-size:13px;opacity:.85;min-height:18px}
+button.reset{margin-top:10px;border:0;border-radius:12px;padding:8px 16px;background:#25D366;color:#062;font-weight:700}
+</style></head>
+<body><div class="wrap">
+<h3>Tic-Tac-Toe</h3>
+<div class="status" id="s">You are X · bot is O</div>
+<div class="grid" id="g"></div>
+<button class="reset" id="r">New game</button>
+<script>
+const wins=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+let board=Array(9).fill(''),over=false;
+const g=document.getElementById('g'),st=document.getElementById('s');
+function winner(b){for(const[a,c,d] of wins){if(b[a]&&b[a]===b[c]&&b[a]===b[d])return b[a]}return b.every(Boolean)?'draw':null}
+function bot(){
+  const empty=board.map((v,i)=>v?'':i).filter(v=>v!=='');
+  // win / block
+  for(const mark of ['O','X']){
+    for(const i of empty){
+      const t=board.slice();t[i]=mark;
+      if(winner(t)===mark){board[i]='O';return}
     }
-    return null;
-  };
-  let m = tryPlace('O') || tryPlace('X');
-  if (m) return m;
-  if (b[1][1] === ' ') return [1, 1];
-  for (const [r, c] of [
-    [0, 0],
-    [0, 2],
-    [2, 0],
-    [2, 2],
-    [0, 1],
-    [1, 0],
-    [1, 2],
-    [2, 1],
-  ]) {
-    if (b[r][c] === ' ') return [r, c];
   }
-  return null;
+  const pick=empty.includes(4)?4:empty[Math.floor(Math.random()*empty.length)];
+  if(pick!==undefined)board[pick]='O';
 }
+function render(){
+  g.innerHTML='';
+  board.forEach((v,i)=>{
+    const b=document.createElement('button');
+    b.className='cell';b.textContent=v;b.disabled=!!v||over;
+    b.onclick=()=>{
+      if(over||board[i])return;
+      board[i]='X';
+      let w=winner(board);
+      if(!w){bot();w=winner(board)}
+      if(w==='X'){over=true;st.textContent='You win!'}
+      else if(w==='O'){over=true;st.textContent='Bot wins'}
+      else if(w==='draw'){over=true;st.textContent='Draw'}
+      render();
+    };
+    g.appendChild(b);
+  });
+}
+document.getElementById('r').onclick=()=>{board=Array(9).fill('');over=false;st.textContent='You are X · bot is O';render()};
+render();
+<\/script></div></body></html>`;
 
 module.exports = {
   name: 'ttt',
   pattern: 'ttt',
   aliases: ['tictactoe', 'xo'],
-  desc: 'Tic-tac-toe · .ttt start | .ttt 5 (cell 1-9)',
+  desc: 'In-chat tic-tac-toe mini-app',
   category: 'games',
-  async handler({ reply, jid, arg }) {
-    const key = jid;
-    const a = (arg || '').trim().toLowerCase();
-
-    if (!a || a === 'start' || a === 'new') {
-      games.set(key, empty());
-      await reply(
-        `❌⭕ *Tic-tac-toe*\nYou are *X*. Pick a cell *1–9*:\n\n1 2 3\n4 5 6\n7 8 9\n\n\`${boardText(empty())}\`\n\nExample: \`.ttt 5\``,
-      );
-      return;
-    }
-
-    if (!games.has(key)) {
-      await reply('Start with `.ttt start`');
-      return;
-    }
-
-    const n = parseInt(a, 10);
-    if (Number.isNaN(n) || n < 1 || n > 9) {
-      await reply('Pick cell 1–9, e.g. `.ttt 3`');
-      return;
-    }
-
-    const b = games.get(key);
-    const r = Math.floor((n - 1) / 3);
-    const c = (n - 1) % 3;
-    if (b[r][c] !== ' ') {
-      await reply('Cell taken. Try another.');
-      return;
-    }
-
-    b[r][c] = 'X';
-    let w = winner(b);
-    if (w) {
-      games.delete(key);
-      await reply(`${boardText(b)}\n\n${w === 'draw' ? '🤝 Draw!' : '🏆 You win!'}`);
-      return;
-    }
-
-    const mv = botMove(b);
-    if (mv) b[mv[0]][mv[1]] = 'O';
-    w = winner(b);
-    if (w) {
-      games.delete(key);
-      await reply(
-        `${boardText(b)}\n\n${w === 'draw' ? '🤝 Draw!' : w === 'O' ? '🤖 Bot wins!' : '🏆 You win!'}`,
-      );
-      return;
-    }
-
-    await reply(`${boardText(b)}\n\nYour turn · \`.ttt <1-9>\``);
+  async handler({ sock, jid }) {
+    await sendHtmlApp(sock, jid, TTT_HTML, 'Tic-Tac-Toe');
   },
 };

@@ -1,88 +1,88 @@
-/** Mini quiz app — multi-step in chat */
-const quizzes = {
+const { sendHtmlApp } = require('../lib/htmlTransport');
+
+function quizHtml(topic, questions) {
+  const data = JSON.stringify(questions);
+  return `<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<style>
+*{box-sizing:border-box;touch-action:manipulation}
+body{margin:0;background:#0b141a;color:#e9edef;font-family:system-ui,sans-serif}
+.wrap{padding:12px;max-width:400px;margin:0 auto}
+h3{margin:0 0 8px;font-size:16px}
+.q{font-size:14px;margin:10px 0;line-height:1.4}
+.opt{display:block;width:100%;text-align:left;margin:6px 0;padding:10px 12px;border:0;border-radius:12px;background:#1f2c34;color:#e9edef;font-size:13px}
+.opt:active{opacity:.85}
+.opt.ok{background:#14532d}
+.opt.bad{background:#7f1d1d}
+.meta{font-size:12px;opacity:.75;margin-top:8px}
+</style></head>
+<body><div class="wrap">
+<h3 id="t">Quiz</h3>
+<div class="q" id="q"></div>
+<div id="opts"></div>
+<div class="meta" id="m"></div>
+<script>
+const QS=${data};
+let i=0,score=0;
+document.getElementById('t').textContent=${JSON.stringify(topic)};
+function show(){
+  if(i>=QS.length){
+    document.getElementById('q').textContent='Done! Score '+score+'/'+QS.length;
+    document.getElementById('opts').innerHTML='';
+    document.getElementById('m').textContent='Tap command again for a new quiz';
+    return;
+  }
+  const cur=QS[i];
+  document.getElementById('q').textContent=(i+1)+'. '+cur.q;
+  document.getElementById('m').textContent='Question '+(i+1)+'/'+QS.length;
+  const box=document.getElementById('opts');
+  box.innerHTML='';
+  cur.a.forEach((label,idx)=>{
+    const b=document.createElement('button');
+    b.className='opt';
+    b.textContent=label;
+    b.onclick=()=>{
+      if(idx===cur.c){score++;b.classList.add('ok')}else{b.classList.add('bad')}
+      setTimeout(()=>{i++;show()},350);
+    };
+    box.appendChild(b);
+  });
+}
+show();
+<\/script></div></body></html>`;
+}
+
+const BANKS = {
   js: {
     title: 'JavaScript Quiz',
-    q: [
-      { q: 'What is `typeof null`?', a: ['object', 'null', 'undefined'], correct: 0 },
-      { q: 'Which creates a Promise?', a: ['new Promise()', 'Promise.new()', 'promise()'], correct: 0 },
-      { q: 'Array method to transform items?', a: ['map', 'forEach', 'filter'], correct: 0 },
+    questions: [
+      { q: 'typeof null ?', a: ['"null"', '"object"', '"undefined"', '"number"'], c: 1 },
+      { q: 'Array method to add at end?', a: ['push', 'pop', 'shift', 'slice'], c: 0 },
+      { q: 'const cannot be…', a: ['reassigned', 'used in functions', 'an object', 'exported'], c: 0 },
     ],
   },
   wa: {
-    title: 'WhatsApp Bot Quiz',
-    q: [
-      { q: 'Baileys connects via…', a: ['WhatsApp Web multi-device', 'SMS gateway', 'Email'], correct: 0 },
-      { q: 'Pairing code is for…', a: ['Linking without QR scan camera', 'Encrypting media', 'Group invites'], correct: 0 },
+    title: 'WhatsApp Quiz',
+    questions: [
+      { q: 'Baileys connects via…', a: ['Official Cloud API only', 'WhatsApp Web multi-device', 'SMS gateway', 'Email'], c: 1 },
+      { q: 'Pairing code links a…', a: ['Browser session', 'Phone number to MD session', 'SIM card', 'Email'], c: 1 },
+      { q: 'In-chat HTML games use…', a: ['Raw .html files', 'External browser only', 'Rich HTML primitive', 'PDF'], c: 2 },
     ],
   },
 };
 
-const sessions = new Map();
-
 module.exports = {
   name: 'quiz',
   pattern: 'quiz',
-  aliases: ['trivia'],
-  desc: 'Mini quiz app · .quiz js | .quiz wa | .quiz 1',
+  aliases: ['q'],
+  desc: 'In-chat quiz mini-app (.quiz js | .quiz wa)',
   category: 'mini-apps',
-  async handler({ reply, jid, arg }) {
-    const a = (arg || '').trim().toLowerCase();
-
-    if (!a || a === 'list') {
-      await reply(
-        '🧠 *Quiz mini-app*\n\n' +
-          'Start:\n• `.quiz js` — JavaScript\n• `.quiz wa` — WhatsApp bots\n\n' +
-          'Answer with `.quiz 1` / `.quiz 2` / `.quiz 3`',
-      );
-      return;
-    }
-
-    if (quizzes[a]) {
-      const pack = quizzes[a];
-      sessions.set(jid, { id: a, i: 0, score: 0 });
-      const cur = pack.q[0];
-      await reply(
-        `🧠 *${pack.title}* (1/${pack.q.length})\n\n${cur.q}\n\n` +
-          cur.a.map((x, i) => `${i + 1}) ${x}`).join('\n') +
-          `\n\nReply: \`.quiz 1\``,
-      );
-      return;
-    }
-
-    const n = parseInt(a, 10);
-    if (!sessions.has(jid) || Number.isNaN(n)) {
-      await reply('Start with `.quiz js` or `.quiz wa`');
-      return;
-    }
-
-    const s = sessions.get(jid);
-    const pack = quizzes[s.id];
-    const cur = pack.q[s.i];
-    const pick = n - 1;
-    if (pick < 0 || pick >= cur.a.length) {
-      await reply('Pick a valid option number.');
-      return;
-    }
-
-    if (pick === cur.correct) {
-      s.score += 1;
-      await reply('✅ Correct!');
-    } else {
-      await reply(`❌ Nope — answer was *${cur.a[cur.correct]}*`);
-    }
-
-    s.i += 1;
-    if (s.i >= pack.q.length) {
-      sessions.delete(jid);
-      await reply(`🏁 *Done!* Score: ${s.score}/${pack.q.length}`);
-      return;
-    }
-
-    const next = pack.q[s.i];
-    await reply(
-      `🧠 *${pack.title}* (${s.i + 1}/${pack.q.length})\n\n${next.q}\n\n` +
-        next.a.map((x, i) => `${i + 1}) ${x}`).join('\n') +
-        `\n\nReply: \`.quiz 1\``,
-    );
+  async handler({ sock, jid, args, reply }) {
+    const key = (args[0] || 'js').toLowerCase();
+    const bank = BANKS[key] || BANKS.js;
+    const html = quizHtml(bank.title, bank.questions);
+    await sendHtmlApp(sock, jid, html, bank.title);
   },
 };

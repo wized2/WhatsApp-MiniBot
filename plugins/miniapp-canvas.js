@@ -1,41 +1,37 @@
-/**
- * Mini-app style card: self-contained HTML/CSS/JS "canvas" description.
- *
- * True in-bubble HTML rendering depends on a Baileys fork that supports
- * embedded WebUI / GenAI HTML primitives. This plugin:
- *  1) Sends a rich text card that works everywhere
- *  2) Also attaches the HTML source so advanced clients / forks can use it
- */
+const { sendHtmlApp } = require('../lib/htmlTransport');
 
 const DINO_HTML = `<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
 <style>
-  body{margin:0;background:#0b141a;color:#e9edef;font-family:system-ui,sans-serif}
-  .wrap{padding:12px}
-  h3{margin:0 0 8px;font-size:16px}
-  canvas{width:100%;max-width:360px;height:auto;background:#111;border-radius:12px;display:block}
-  p{font-size:12px;opacity:.75;margin:8px 0 0}
+*{box-sizing:border-box;touch-action:manipulation}
+body{margin:0;background:#0b141a;color:#e9edef;font-family:system-ui,sans-serif;overflow:hidden}
+.wrap{padding:10px}
+h3{margin:0 0 6px;font-size:15px}
+canvas{width:100%;max-width:360px;height:auto;background:#111;border-radius:12px;display:block;margin:0 auto}
+.bar{display:flex;justify-content:space-between;font-size:12px;opacity:.85;margin-top:6px}
+btn,button{border:0;border-radius:10px;padding:8px 14px;background:#25D366;color:#062;font-weight:700}
 </style></head>
 <body><div class="wrap">
-<h3>Dino Run (demo)</h3>
-<canvas id="c" width="320" height="120"></canvas>
-<p>Tap / space to jump · demo logic runs locally in compatible clients</p>
+<h3>Dino Run</h3>
+<canvas id="c" width="320" height="140"></canvas>
+<div class="bar"><span id="sc">Score 0</span><button id="j">Jump</button></div>
 <script>
 const c=document.getElementById('c'),x=c.getContext('2d');
-let y=80,vy=0,on=true,obs=300,sc=0;
-function jump(){if(y>=80)vy=-8}
+let y=100,vy=0,on=true,obs=300,sc=0;
+function jump(){if(y>=100)vy=-9}
+document.getElementById('j').onclick=jump;
 c.addEventListener('pointerdown',jump);
-addEventListener('keydown',e=>{if(e.code==='Space')jump()});
 function loop(){
-  x.clearRect(0,0,320,120);
-  x.fillStyle='#25D366';x.fillRect(30,y,18,18);
-  x.fillStyle='#ef4444';x.fillRect(obs,90,14,20);
-  y+=vy;vy+=0.5;if(y>80){y=80;vy=0}
-  obs-=4;if(obs<-20){obs=320;sc++}
-  if(obs<48&&obs>20&&y>70){on=false;x.fillStyle='#fff';x.fillText('Game Over · score '+sc,90,60);return}
-  x.fillStyle='#fff';x.fillText('Score '+sc,8,14);
+  x.clearRect(0,0,320,140);
+  x.fillStyle='#1f2c34';x.fillRect(0,120,320,20);
+  x.fillStyle='#25D366';x.fillRect(28,y,20,20);
+  x.fillStyle='#ef4444';x.fillRect(obs,100,16,22);
+  y+=vy;vy+=0.55;if(y>100){y=100;vy=0}
+  obs-=5;if(obs<-20){obs=320+Math.random()*40;sc++}
+  if(obs<48&&obs>18&&y>85){on=false;x.fillStyle='#fff';x.font='16px system-ui';x.fillText('Game Over · '+sc,90,70)}
+  document.getElementById('sc').textContent='Score '+sc;
   if(on)requestAnimationFrame(loop);
 }
 loop();
@@ -44,33 +40,10 @@ loop();
 module.exports = {
   name: 'miniapp',
   pattern: 'miniapp',
-  aliases: ['app', 'canvas'],
-  desc: 'In-chat mini-app card + HTML canvas demo',
+  aliases: ['app', 'canvas', 'dino'],
+  desc: 'In-chat HTML mini-app (Dino Run)',
   category: 'mini-apps',
-  async handler({ reply, sock, jid, m }) {
-    const card =
-      '🧩 *Mini App · Canvas demo*\n\n' +
-      'This is the *in-chat mini surface* style:\n' +
-      '• Looks like a rich card in the thread\n' +
-      '• Powered by HTML / CSS / JS (canvas game)\n' +
-      '• Full interactive HTML needs a Baileys build with embedded WebUI support\n\n' +
-      'On stock Baileys you still get this card + the HTML source below.\n\n' +
-      '```html\n' +
-      DINO_HTML.slice(0, 900) +
-      '\n…```\n\n' +
-      '_Tip: forks with `sendInlineWebUI` / embedded screens can render this HTML inside the bubble._';
-
-    await reply(card);
-
-    // Best-effort: if a fork exposes an inline HTML helper, use it
-    try {
-      if (typeof sock.sendInlineWebUI === 'function') {
-        await sock.sendInlineWebUI(jid, DINO_HTML, 'Dino Run');
-      }
-    } catch (_) {
-      /* optional */
-    }
+  async handler({ sock, jid }) {
+    await sendHtmlApp(sock, jid, DINO_HTML, 'Dino Run');
   },
 };
-
-module.exports.DINO_HTML = DINO_HTML;
