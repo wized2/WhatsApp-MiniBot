@@ -12,12 +12,14 @@ const {
   DisconnectReason,
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
+  Browsers,
 } = require('@whiskeysockets/baileys');
 
 const sessionDir = path.resolve(config.sessionDir);
 if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
 const plugins = loadPlugins(path.join(__dirname, 'plugins'));
+
 const state = {
   connected: false,
   user: null,
@@ -25,15 +27,49 @@ const state = {
   pairingCode: null,
   message: 'Starting…',
   updatedAt: Date.now(),
+  socketReady: false,
+  registered: false,
+  lastError: null,
   requestPairingCode: null,
 };
 
 startPairServer(config, state);
 
+function normalizePhone(input) {
+  let n = String(input || '').replace(/\D/g, '');
+  if (n.startsWith('00')) n = n.slice(2);
+  if (n.length < 10 || n.length > 15) {
+    throw new Error('Phone must be country code + number, digits only (10–15 digits). Example: 923001234567');
+  }
+  return n;
+}
+
+function formatPairCode(code) {
+  const c = String(code || '').replace(/\W/g, '').toUpperCase();
+  if (c.length === 8) return c.slice(0, 4) + '-' + c.slice(4);
+  return c;
+}
+
+let sockRef = null;
+let pairingInFlight = null;
+let waitedForQr = false;
+
+function clearSessionFiles() {
+  try {
+    for (const f of fs.readdirSync(sessionDir)) {
+      fs.unlinkSync(path.join(sessionDir, f));
+    }
+    console.log('[pair] cleared session folder');
+  } catch (e) {
+    console.warn('[pair] clear session', e.message);
+  }
+}
+
 async function startBot() {
   const { state: authState, saveCreds } = await useMultiFileAuthState(sessionDir);
   const { version } = await fetchLatestBaileysVersion();
 
+  // Custom browser labels produce DEAD pairing codes WhatsApp rejects.
   const sock = makeWASocket({
     version,
     logger: pino({ level: 'silent' }),
@@ -42,25 +78,66 @@ async function startBot() {
       creds: authState.creds,
       keys: makeCacheableSignalKeyStore(authState.keys, pino({ level: 'silent' })),
     },
-    browser: [config.botName, 'Chrome', '1.0.0'],
+    browser: Browsers.macOS('Chrome'),
+    connectTimeoutMs: 60000,
+    defaultQueryTimeoutMs: 60000,
     generateHighQualityLinkPreview: false,
     syncFullHistory: false,
     markOnlineOnConnect: false,
   });
 
-  state.requestPairingCode = async (number) => {
-    // Baileys expects digits only
-    const code = await sock.requestPairingCode(number);
-    // Pretty form: ABCD-EFGH when 8 chars
-    const pretty =
-      String(code).length === 8
-        ? `${String(code).slice(0, 4)}-${String(code).slice(4)}`
-        : String(code);
-    state.pairingCode = pretty;
-    state.message = `Pairing code for ${number}`;
-    state.updatedAt = Date.now();
-    console.log('[pair] code', pretty);
-    return pretty;
+  sockRef = sock;
+  waitedForQr = false;
+  pairingInFlight = null;
+  state.socketReady = false;
+  state.registered = !!sock.authState.creds.registered;
+  state.lastError = null;
+  state.message = state.registered ? 'Session found — connecting…' : 'Waiting for WhatsApp handshake…';
+  state.updatedAt = Date.now();
+
+  state.requestPairingCode = async (rawNumber) => {
+    if (!sockRef) throw new Error('Socket not ready');
+    if (sockRef.authState.creds.registered) {
+      throw new Error('Already linked. Delete the session/ folder and restart to re-pair.');
+    }
+
+    const number = normalizePhone(rawNumber);
+
+    const deadline = Date.now() + 45000;
+    while (!waitedForQr && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    if (!waitedForQr) {
+      throw new Error('WhatsApp handshake not ready yet. Wait a few seconds and try again.');
+    }
+
+    if (pairingInFlight) return pairingInFlight;
+
+    pairingInFlight = (async () => {
+      try {
+        state.message = 'Requesting code for ' + number + '…';
+        state.updatedAt = Date.now();
+        const code = await sockRef.requestPairingCode(number);
+        const pretty = formatPairCode(code);
+        state.pairingCode = pretty;
+        state.message =
+          'Enter ' + pretty + ' on your phone within ~1 minute. WhatsApp → Linked devices → Link a device → Link with phone number instead';
+        state.updatedAt = Date.now();
+        state.lastError = null;
+        console.log('[pair] REAL code for', number, '→', pretty);
+        return pretty;
+      } catch (e) {
+        state.lastError = e.message || String(e);
+        state.message = 'Pairing failed: ' + state.lastError;
+        state.updatedAt = Date.now();
+        console.error('[pair] requestPairingCode error', e);
+        throw e;
+      } finally {
+        pairingInFlight = null;
+      }
+    })();
+
+    return pairingInFlight;
   };
 
   sock.ev.on('creds.update', saveCreds);
@@ -69,11 +146,16 @@ async function startBot() {
     const { connection, lastDisconnect, qr } = update;
 
     if (qr) {
+      waitedForQr = true;
+      state.socketReady = true;
       try {
         state.lastQrDataUrl = await qrcode.toDataURL(qr);
-        state.message = 'Scan QR or request a pairing code on the web panel';
+        if (!state.pairingCode) {
+          state.message =
+            'Ready. Scan QR, or enter your number and tap Get code (enter the code in WhatsApp within 1 minute).';
+        }
         state.updatedAt = Date.now();
-        console.log('[pair] QR updated — open the pairing site');
+        console.log('[pair] handshake OK — QR available');
       } catch (e) {
         console.error('[pair] QR render failed', e.message);
       }
@@ -81,9 +163,12 @@ async function startBot() {
 
     if (connection === 'open') {
       state.connected = true;
+      state.registered = true;
       state.user = sock.user || null;
-      state.message = 'Connected';
       state.pairingCode = null;
+      state.lastQrDataUrl = null;
+      state.message = 'Connected';
+      state.lastError = null;
       state.updatedAt = Date.now();
       console.log('[bot] connected as', sock.user?.id || '?');
     }
@@ -91,12 +176,28 @@ async function startBot() {
     if (connection === 'close') {
       state.connected = false;
       state.user = null;
-      const code = lastDisconnect?.error?.output?.statusCode;
-      const shouldReconnect = code !== DisconnectReason.loggedOut;
-      state.message = shouldReconnect ? 'Disconnected — reconnecting…' : 'Logged out — delete session and pair again';
+      state.socketReady = false;
+      const statusCode = lastDisconnect?.error?.output?.statusCode;
+      const reason = lastDisconnect?.error?.message || String(statusCode || 'unknown');
+      const loggedOut = statusCode === DisconnectReason.loggedOut;
+      state.lastError = reason;
+      state.message = loggedOut
+        ? 'Logged out — delete session/ and pair again'
+        : 'Disconnected (' + (statusCode || '?') + ') — reconnecting…';
       state.updatedAt = Date.now();
-      console.log('[bot] close', code, shouldReconnect ? 'reconnect' : 'stop');
-      if (shouldReconnect) setTimeout(() => startBot().catch(console.error), 2000);
+      console.log('[bot] close', statusCode, reason);
+
+      if (
+        statusCode === DisconnectReason.loggedOut ||
+        statusCode === 401 ||
+        statusCode === 405
+      ) {
+        clearSessionFiles();
+      }
+
+      if (!loggedOut) {
+        setTimeout(() => startBot().catch(console.error), 2500);
+      }
     }
   });
 
@@ -141,7 +242,6 @@ async function startBot() {
     }
   });
 
-  // Shared helpers for plugins
   sock.__minibot = { config, plugins };
 }
 

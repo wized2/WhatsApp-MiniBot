@@ -11,10 +11,13 @@ async function refresh() {
     const st = $('statusText');
     if (d.connected) {
       dot.className = 'dot ok';
-      st.textContent = `Connected${d.user?.id ? ' · ' + d.user.id : ''}`;
-    } else if (d.pairingCode || d.lastQrDataUrl) {
+      st.textContent = 'Connected' + (d.user?.id ? ' · ' + d.user.id : '');
+    } else if (d.socketReady) {
       dot.className = 'dot wait';
-      st.textContent = d.message || 'Waiting for link…';
+      st.textContent = d.message || 'Ready to pair';
+    } else if (d.lastError) {
+      dot.className = 'dot bad';
+      st.textContent = d.message || d.lastError;
     } else {
       dot.className = 'dot wait';
       st.textContent = d.message || 'Starting…';
@@ -32,6 +35,8 @@ async function refresh() {
       $('codeBox').hidden = false;
       $('codeText').textContent = d.pairingCode;
     }
+
+    $('btnCode').disabled = !!(d.connected || !d.socketReady);
   } catch (e) {
     $('statusText').textContent = 'Panel offline';
     $('dot').className = 'dot bad';
@@ -41,6 +46,7 @@ async function refresh() {
 $('btnCode').onclick = async () => {
   const number = $('number').value.replace(/\D/g, '');
   $('btnCode').disabled = true;
+  $('statusText').textContent = 'Requesting real pairing code from WhatsApp…';
   try {
     const r = await fetch('/api/request-code', {
       method: 'POST',
@@ -51,17 +57,19 @@ $('btnCode').onclick = async () => {
     if (!d.ok) throw new Error(d.error || 'Failed');
     $('codeBox').hidden = false;
     $('codeText').textContent = d.code;
+    $('statusText').textContent = d.hint || 'Enter the code in WhatsApp now';
+    $('dot').className = 'dot wait';
   } catch (e) {
     alert(e.message || String(e));
   } finally {
-    $('btnCode').disabled = false;
+    await refresh();
   }
 };
 
 $('btnCopy').onclick = async () => {
-  const t = $('codeText').textContent;
+  const t = $('codeText').textContent.replace(/-/g, '');
   try {
-    await navigator.clipboard.writeText(t.replace(/-/g, ''));
+    await navigator.clipboard.writeText(t);
     $('btnCopy').textContent = 'Copied';
     setTimeout(() => ($('btnCopy').textContent = 'Copy'), 1200);
   } catch {
@@ -70,4 +78,4 @@ $('btnCopy').onclick = async () => {
 };
 
 refresh();
-setInterval(refresh, 2500);
+setInterval(refresh, 2000);
