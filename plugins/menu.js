@@ -1,31 +1,27 @@
 module.exports = {
   name: 'menu',
   pattern: 'menu',
-  aliases: ['help', 'start'],
-  desc: 'Show all commands',
+  aliases: ['help', 'commands'],
+  desc: 'List commands',
   category: 'main',
-  async handler({ reply, config, plugins }) {
-    const groups = {};
+  async handler({ reply, plugins, config }) {
+    const by = {};
     for (const p of plugins) {
       const c = p.category || 'general';
-      if (!groups[c]) groups[c] = [];
-      groups[c].push(p);
+      (by[c] ||= []).push(p);
     }
-
-    let text = `*${config.botName}*\n${config.tagline || ''}\n\n`;
-    text += `Prefix: \`${config.prefix}\`\n\n`;
-
-    for (const [cat, list] of Object.entries(groups)) {
-      text += `*${cat.toUpperCase()}*\n`;
+    let text = `*${config.botName}* · ${config.tagline || ''}\nPrefix: \`${config.prefix}\`\n\n`;
+    for (const [cat, list] of Object.entries(by)) {
+      text += `*${cat}*\n`;
       for (const p of list) {
-        text += `• ${config.prefix}${p.pattern}`;
-        if (p.desc) text += ` — ${p.desc}`;
-        text += '\n';
+        const names = [p.pattern, ...(p.aliases || [])].filter(Boolean);
+        // avoid dumping 20 game aliases in menu
+        const shown = p.file === 'games-pack.js' ? ['.games', '.snake', '.tetris', '…'] : names.map((n) => config.prefix + n);
+        text += `• ${shown.join(' ')} — ${p.desc || ''}\n`;
       }
       text += '\n';
     }
-
-    text += `_Mini games & apps run as interactive text / cards in chat._`;
+    text += `_Anyone can use commands (public)._`;
     await reply(text.trim());
   },
 };

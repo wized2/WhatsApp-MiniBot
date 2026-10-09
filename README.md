@@ -106,3 +106,22 @@ MIT
 5. Code expired — enter within about **1 minute** after it appears.
 
 On phone: **WhatsApp → Linked devices → Link a device → Link with phone number instead**.
+
+## KataBump (one file)
+
+Upload / set start command to:
+
+```bash
+node katabump.js
+```
+
+Env:
+- `PORT=20299` (default in script)
+- `REPO_URL` (default this repo)
+- `BRANCH=main`
+
+The script `git pull`s latest code, `npm install`s, keeps `session/` persistent, and starts the bot on `0.0.0.0:$PORT`.
+
+## Games
+
+`.games` lists them. Examples: `.snake` `.tetris` `.pong` `.flappy` `.2048` `.memory` `.mines` `.simon` `.ttt` `.dino` …

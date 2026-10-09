@@ -210,31 +210,41 @@ async function startBot() {
       try {
         if (!m.message) continue;
         if (m.key.remoteJid === 'status@broadcast') continue;
-        // Skip pure protocol / stub messages
         if (m.message.protocolMessage) continue;
+        if (m.message.reactionMessage) continue;
 
+        // Chat JID (DM or group). Public — anyone can run commands.
         const jid = m.key.remoteJid;
         if (!jid) continue;
-
-        // Allow commands from other devices of the same account (fromMe)
-        // Only ignore if it's a pure status broadcast (handled above)
 
         const text = extractText(m.message).trim();
         if (!text) continue;
 
-        console.log('[msg]', type, jid, JSON.stringify(text.slice(0, 80)), 'fromMe=', !!m.key.fromMe);
+        const sender = m.key.participant || m.participant || jid;
+        console.log(
+          '[msg]',
+          type,
+          jid,
+          'from',
+          sender,
+          JSON.stringify(text.slice(0, 80)),
+          'fromMe=',
+          !!m.key.fromMe
+        );
 
         const hit = matchPlugin(plugins, text, config.prefix);
         if (!hit) continue;
 
-        console.log('[cmd]', hit.cmd, '→', hit.plugin.file);
+        console.log('[cmd]', hit.cmd, '→', hit.plugin.file, 'by', sender);
 
         const ctx = {
           sock,
           m,
           jid,
+          sender,
           text,
           arg: hit.arg,
+          args: hit.args || [],
           cmd: hit.cmd,
           config,
           plugins,
@@ -246,7 +256,6 @@ async function startBot() {
               return await sock.sendMessage(jid, content, { quoted: m });
             } catch (err) {
               console.error('[reply]', err.message || err);
-              // Fallback without quote
               if (typeof content === 'string') {
                 return await sock.sendMessage(jid, { text: content });
               }
