@@ -93,3 +93,16 @@ Stock Baileys delivers **text / media / buttons**.
 ## License
 
 MIT
+
+
+## Pairing troubleshooting
+
+**Dead / rejected codes (no WhatsApp notification)** usually mean:
+
+1. Custom `browser` label — fixed to `Browsers.macOS('Chrome')` (required for pairing IQ).
+2. Code requested before handshake — wait until the site says **Ready**, then **Get code**.
+3. Stale `session/` — delete it and restart: `rm -rf session && npm start`.
+4. Wrong number format — digits only with country code, e.g. `923001234567` (no `+`).
+5. Code expired — enter within about **1 minute** after it appears.
+
+On phone: **WhatsApp → Linked devices → Link a device → Link with phone number instead**.
