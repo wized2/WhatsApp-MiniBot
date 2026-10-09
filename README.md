@@ -125,3 +125,12 @@ The script `git pull`s latest code, `npm install`s, keeps `session/` persistent,
 ## Games
 
 `.games` lists them. Examples: `.snake` `.tetris` `.pong` `.flappy` `.2048` `.memory` `.mines` `.simon` `.ttt` `.dino` …
+
+## HTML mini-apps (important)
+
+In-chat HTML uses WhatsApp’s **GenAI rich response** format (`baileys@7`).
+
+- Works best on **WhatsApp Android** (latest).
+- iOS / Web may show only a title or not render the WebView.
+- Requires `getMessage` store (included) so peers don’t stick on *“Waiting for this message”*.
+- After upgrading, do a clean `npm install`. If pairing breaks, delete `session/` and pair again.

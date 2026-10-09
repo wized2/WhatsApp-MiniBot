@@ -5,6 +5,7 @@ const qrcode = require('qrcode');
 const config = require('./config');
 const { loadPlugins, matchPlugin, extractText } = require('./lib/pluginLoader');
 const { startPairServer } = require('./lib/pairServer');
+const msgStore = require('./lib/msgStore');
 
 const {
   default: makeWASocket,
@@ -13,7 +14,7 @@ const {
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
   Browsers,
-} = require('@whiskeysockets/baileys');
+} = require('baileys');
 
 const sessionDir = path.resolve(config.sessionDir);
 if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
@@ -84,6 +85,8 @@ async function startBot() {
     generateHighQualityLinkPreview: false,
     syncFullHistory: false,
     markOnlineOnConnect: false,
+    // Critical: answer retry requests so peers don't stick on "Waiting for this message"
+    getMessage: msgStore.getMessage,
   });
 
   sockRef = sock;
@@ -209,6 +212,7 @@ async function startBot() {
     for (const m of messages) {
       try {
         if (!m.message) continue;
+        msgStore.put(m);
         if (m.key.remoteJid === 'status@broadcast') continue;
         if (m.message.protocolMessage) continue;
         if (m.message.reactionMessage) continue;
@@ -250,14 +254,20 @@ async function startBot() {
           plugins,
           reply: async (content) => {
             try {
+              let sent;
               if (typeof content === 'string') {
-                return await sock.sendMessage(jid, { text: content }, { quoted: m });
+                sent = await sock.sendMessage(jid, { text: content }, { quoted: m });
+              } else {
+                sent = await sock.sendMessage(jid, content, { quoted: m });
               }
-              return await sock.sendMessage(jid, content, { quoted: m });
+              if (sent) msgStore.put(sent);
+              return sent;
             } catch (err) {
               console.error('[reply]', err.message || err);
               if (typeof content === 'string') {
-                return await sock.sendMessage(jid, { text: content });
+                const sent = await sock.sendMessage(jid, { text: content });
+                if (sent) msgStore.put(sent);
+                return sent;
               }
               throw err;
             }

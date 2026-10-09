@@ -1,7 +1,7 @@
 {
   "name": "whatsapp-minibot",
-  "version": "1.0.0",
-  "description": "WhatsApp bot with pairing site, plugin system, and mini games",
+  "version": "1.1.0",
+  "description": "WhatsApp bot with pairing site, plugin system, and in-chat HTML mini games",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
@@ -12,7 +12,8 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.7.18",
+    "@hapi/boom": "^10.0.1",
+    "baileys": "7.0.0-rc14",
     "express": "^4.21.2",
     "pino": "^9.6.0",
     "qrcode": "^1.5.4"
