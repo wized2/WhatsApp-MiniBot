@@ -3,7 +3,7 @@ const path = require('path');
 const pino = require('pino');
 const qrcode = require('qrcode');
 const config = require('./config');
-const { loadPlugins, matchPlugin } = require('./lib/pluginLoader');
+const { loadPlugins, matchPlugin, extractText } = require('./lib/pluginLoader');
 const { startPairServer } = require('./lib/pairServer');
 
 const {
@@ -201,22 +201,33 @@ async function startBot() {
     }
   });
 
-  sock.ev.on('messages.upsert', async ({ messages, type }) => {
-    if (type !== 'notify') return;
+  sock.ev.on('messages.upsert', async (upsert) => {
+    const { messages, type } = upsert;
+    // Baileys may deliver as notify OR append depending on sync path
+    if (type !== 'notify' && type !== 'append') return;
+
     for (const m of messages) {
       try {
-        if (!m.message || m.key.fromMe) continue;
-        const jid = m.key.remoteJid;
-        if (!jid || jid === 'status@broadcast') continue;
+        if (!m.message) continue;
+        if (m.key.remoteJid === 'status@broadcast') continue;
+        // Skip pure protocol / stub messages
+        if (m.message.protocolMessage) continue;
 
-        const text =
-          m.message.conversation ||
-          m.message.extendedTextMessage?.text ||
-          m.message.imageMessage?.caption ||
-          '';
+        const jid = m.key.remoteJid;
+        if (!jid) continue;
+
+        // Allow commands from other devices of the same account (fromMe)
+        // Only ignore if it's a pure status broadcast (handled above)
+
+        const text = extractText(m.message).trim();
+        if (!text) continue;
+
+        console.log('[msg]', type, jid, JSON.stringify(text.slice(0, 80)), 'fromMe=', !!m.key.fromMe);
 
         const hit = matchPlugin(plugins, text, config.prefix);
         if (!hit) continue;
+
+        console.log('[cmd]', hit.cmd, '→', hit.plugin.file);
 
         const ctx = {
           sock,
@@ -228,10 +239,19 @@ async function startBot() {
           config,
           plugins,
           reply: async (content) => {
-            if (typeof content === 'string') {
-              return sock.sendMessage(jid, { text: content }, { quoted: m });
+            try {
+              if (typeof content === 'string') {
+                return await sock.sendMessage(jid, { text: content }, { quoted: m });
+              }
+              return await sock.sendMessage(jid, content, { quoted: m });
+            } catch (err) {
+              console.error('[reply]', err.message || err);
+              // Fallback without quote
+              if (typeof content === 'string') {
+                return await sock.sendMessage(jid, { text: content });
+              }
+              throw err;
             }
-            return sock.sendMessage(jid, content, { quoted: m });
           },
         };
 
