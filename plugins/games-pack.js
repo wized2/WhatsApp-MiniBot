@@ -607,6 +607,7 @@ module.exports = {
       }
       text += `├──────────────────\n`;
       text += `│ also: .ttt .guess .dino .quiz\n`;
+      text += `│ more: .games2\n`;
       text += `╰──────────────────╯`;
       return reply(text);
     }
