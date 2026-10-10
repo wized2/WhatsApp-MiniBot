@@ -6,15 +6,16 @@ function hubBody() {
     '<div id="home" class="view on"><div class="tabs" id="tabs"></div><div class="grid" id="grid"></div></div>' +
     '<div id="app" class="view"><button type="button" class="sec" id="back" style="width:100%;margin-bottom:8px">Back</button><div id="abody"></div></div>' +
     '<script>(function(){' +
-    'var CATS={Daily:["calc","notes","todo","timer","focus","counter","habit","expense","water"],' +
-    'Math:["pct","disc","emi","int","gcd","quad","prime","roman","base"],' +
-    'Convert:["unit","fx","temp","data","timez","color"],' +
-    'Text:["words","cases","rev","slug","lorem","diff","jsonf","hash"],' +
-    'Health:["bmi","ideal","age","breath","zodiac"],' +
-    'Fun:["dice","coin","rps","ball","spin","truth","rather","fakeid"],' +
-    'Dev:["uuid","bin","morse","regex","passwd","luhn","leap"],' +
-    'Islam:["zakat","tasbih","hijri"],' +
-    'More:["days","marks","avg","tip","world","about"]};' +
+    'var CATS={Daily:["calc","notes","todo","timer","focus","counter","habit","expense","water","sleep","steps","mood"],' +
+    'Math:["pct","disc","emi","int","gcd","quad","prime","roman","base","factn","pow","sqrt","mod","avg2"],' +
+    'Convert:["unit","fx","temp","data","timez","color","speed","area","volume"],' +
+    'Text:["words","cases","rev","slug","lorem","diff","jsonf","hash","countv","trim","wrap","initials"],' +
+    'Health:["bmi","ideal","age","breath","zodiac","bmr","water2","hrzone"],' +
+    'Fun:["dice","coin","rps","ball","spin","truth","rather","fakeid","story","namegen","colorluck"],' +
+    'Dev:["uuid","bin","morse","regex","passwd","luhn","leap","hex","cron","jwtish"],' +
+    'Islam:["zakat","tasbih","hijri","qibla","duas"],' +
+    'School:["marks","sgpa","table","chem","geo"],' +
+    'More:["days","avg","tip","world","about","stopw","invoice","splitb"]};' +
     'var NAMES={calc:"Calc",notes:"Notes",todo:"Tasks",timer:"Timer",focus:"Focus",counter:"Counter",habit:"Habit",expense:"Expense",water:"Water",' +
     'pct:"Percent",disc:"Discount",emi:"EMI",int:"Interest",gcd:"GCD/LCM",quad:"Quadratic",prime:"Prime?",roman:"Roman",base:"Base",' +
     'unit:"Units",fx:"FX PKR",temp:"Temp",data:"Data size",timez:"Time zones",color:"Color",' +
@@ -23,7 +24,7 @@ function hubBody() {
     'dice:"Dice",coin:"Coin",rps:"RPS",ball:"8Ball",spin:"Picker",truth:"Truth/Dare",rather:"Rather",fakeid:"Fake ID",' +
     'uuid:"UUID",bin:"Binary",morse:"Morse",regex:"Regex test",passwd:"Password",luhn:"Card check",leap:"Leap year",' +
     'zakat:"Zakat",tasbih:"Tasbih",hijri:"Hijri approx",' +
-    'days:"Days left",marks:"Marks %",avg:"Average",tip:"Tip split",world:"Clocks",about:"About"};' +
+    'days:"Days left",marks:"Marks %",avg:"Average",tip:"Tip split",world:"Clocks",about:"About",sleep:"Sleep",steps:"Steps",mood:"Mood",factn:"Factorial",pow:"Power",sqrt:"Sqrt",mod:"Modulo",avg2:"Mean",speed:"Speed",area:"Area",volume:"Volume",countv:"Vowels",trim:"Trim",wrap:"Wrap",initials:"Initials",bmr:"BMR",water2:"Water ml",hrzone:"HR zone",story:"Story",namegen:"Names",colorluck:"Lucky",hex:"Hex",cron:"Cron",jwtish:"Token",qibla:"Qibla",duas:"Dua",sgpa:"SGPA",table:"Tables",chem:"Elements",geo:"Capitals",stopw:"Stopwatch",invoice:"Invoice",splitb:"Split bill"};' +
     'function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}' +
     'function load(k,d){try{var v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}}' +
     'var cur="Daily";' +
@@ -122,7 +123,41 @@ function hubBody() {
     'tip:function(el){field(el,"Bill","tb","number","1000");field(el,"Tip%","tt","number","10");field(el,"People","tp","number","2");'.replace('field(el:"People"','field(el,"People"') +
     'btn(el,"Split",function(){var b=+(document.getElementById("tb").value),t=+(document.getElementById("tt").value),n=Math.max(1,+(document.getElementById("tp").value));var tip=b*t/100;document.getElementById("o").textContent="Each "+((b+tip)/n).toFixed(0)});out(el)},' +
     'world:function(el){var zs=[["PKT","Asia/Karachi"],["London","Europe/London"],["NY","America/New_York"]];function ren(){el.innerHTML="";zs.forEach(function(z){var d=document.createElement("div");d.className="out";d.textContent=z[0]+" "+new Date().toLocaleTimeString([],{timeZone:z[1],hour:"2-digit",minute:"2-digit"});el.appendChild(d)})}ren()},' +
-    'about:function(el){out(el).textContent="MiniBot Hub | 55+ offline tools | no internet needed inside the card"}' +
+    
+    'sleep:function(el){field(el,"Hours","sh","number","7");btn(el,"Log",function(){store("hub_sleep",document.getElementById("sh").value);document.getElementById("o").textContent="Logged"});out(el)},' +
+    'steps:function(el){var n=+(load("hub_steps","0"))||0;var o=out(el);o.style.textAlign="center";function show(){o.textContent=n+" steps"}btn(el,"+1000",function(){n+=1000;store("hub_steps",String(n));show()});btn(el,"Reset",function(){n=0;store("hub_steps","0");show()});show()},' +
+    'mood:function(el){var o=out(el);["Great","OK","Low"].forEach(function(m){btn(el,m,function(){o.textContent="Mood "+m})})},' +
+    'factn:function(el){field(el,"n","fn","number","5");btn(el,"n!",function(){var n=Math.min(20,+(document.getElementById("fn").value)||0),f=1;for(var i=2;i<=n;i++)f*=i;document.getElementById("o").textContent=String(f)});out(el)},' +
+    'pow:function(el){field(el,"Base","pb","number","2");field(el,"Exp","pe","number","8");btn(el,"Power",function(){document.getElementById("o").textContent=String(Math.pow(+(document.getElementById("pb").value),+(document.getElementById("pe").value)))});out(el)},' +
+    'sqrt:function(el){field(el,"n","sq","number","144");btn(el,"Sqrt",function(){document.getElementById("o").textContent=String(Math.sqrt(+(document.getElementById("sq").value)))});out(el)},' +
+    'mod:function(el){field(el,"A","ma","number","17");field(el,"B","mb","number","5");btn(el,"Mod",function(){document.getElementById("o").textContent=String((+(document.getElementById("ma").value))%(+(document.getElementById("mb").value)))});out(el)},' +
+    'avg2:function(el){field(el,"Nums","mn","text","2,4,6");btn(el,"Mean",function(){var a=document.getElementById("mn").value.split(",").map(Number).filter(function(x){return !isNaN(x)});document.getElementById("o").textContent=(a.reduce(function(s,x){return s+x},0)/a.length).toFixed(3)});out(el)},' +
+    'speed:function(el){field(el,"Km","sk","number","100");field(el,"Hours","sh2","number","2");btn(el,"Km/h",function(){document.getElementById("o").textContent=((+(document.getElementById("sk").value))/(+(document.getElementById("sh2").value)||1)).toFixed(2)});out(el)},' +
+    'area:function(el){field(el,"L","al","number","10");field(el,"W","aw","number","5");btn(el,"Area",function(){document.getElementById("o").textContent=String((+(document.getElementById("al").value))*(+(document.getElementById("aw").value)))});out(el)},' +
+    'volume:function(el){field(el,"L","vl","number","2");field(el,"W","vw","number","3");field(el,"H","vh","number","4");btn(el,"Vol",function(){document.getElementById("o").textContent=String((+(document.getElementById("vl").value))*(+(document.getElementById("vw").value))*(+(document.getElementById("vh").value)))});out(el)},' +
+    'countv:function(el){field(el,"Text","cv","text","hello");btn(el,"Vowels",function(){document.getElementById("o").textContent=String((document.getElementById("cv").value.toLowerCase().match(/[aeiou]/g)||[]).length)});out(el)},' +
+    'trim:function(el){field(el,"Text","tr","text","  hi  ");btn(el,"Trim",function(){document.getElementById("o").textContent=document.getElementById("tr").value.trim()});out(el)},' +
+    'wrap:function(el){field(el,"Text","wr","text","hello world test wrap");field(el,"W","ww","number","6");btn(el,"Wrap",function(){var s=document.getElementById("wr").value,w=+(document.getElementById("ww").value)||6,o=[];for(var i=0;i<s.length;i+=w)o.push(s.slice(i,i+w));document.getElementById("o").textContent=o.join(" | ")});out(el)},' +
+    'initials:function(el){field(el,"Name","in2","text","Mudasir Wazir");btn(el,"Initials",function(){document.getElementById("o").textContent=document.getElementById("in2").value.trim().split(/\s+/).map(function(w){return (w[0]||"").toUpperCase()}).join("")});out(el)},' +
+    'bmr:function(el){field(el,"Kg","bk","number","70");field(el,"Cm","bh2","number","170");field(el,"Age","ba","number","25");field(el,"Male1","bm","number","1");btn(el,"BMR",function(){var w=+(document.getElementById("bk").value),h=+(document.getElementById("bh2").value),a=+(document.getElementById("ba").value),m=+(document.getElementById("bm").value);document.getElementById("o").textContent=String((10*w+6.25*h-5*a+(m?5:-161)).toFixed(0))});out(el)},' +
+    'water2:function(el){field(el,"Kg","wk","number","70");btn(el,"ml/day",function(){document.getElementById("o").textContent=String(((+(document.getElementById("wk").value))*35).toFixed(0))});out(el)},' +
+    'hrzone:function(el){field(el,"Age","ha","number","25");btn(el,"Zones",function(){var max=220-(+(document.getElementById("ha").value));document.getElementById("o").textContent="Max "+max});out(el)},' +
+    'story:function(el){var a=["A robot","A student","A cat"],b=["found a map","lost a key"],c=["in RYK","on the moon"];btn(el,"Seed",function(){document.getElementById("o").textContent=a[Math.floor(Math.random()*3)]+" "+b[Math.floor(Math.random()*2)]+" "+c[Math.floor(Math.random()*2)]});out(el)},' +
+    'namegen:function(el){var f=["Ayan","Noor","Zain","Hira"],l=["Ali","Sheikh","Rana","Mir"];btn(el,"Name",function(){document.getElementById("o").textContent=f[Math.floor(Math.random()*4)]+" "+l[Math.floor(Math.random()*4)]});out(el)},' +
+    'colorluck:function(el){var c=["Red","Green","Blue","Gold","Purple"];btn(el,"Lucky",function(){document.getElementById("o").textContent=c[Math.floor(Math.random()*5)]});out(el)},' +
+    'hex:function(el){field(el,"n","hx","number","255");btn(el,"To hex",function(){document.getElementById("o").textContent=(+(document.getElementById("hx").value)).toString(16).toUpperCase()});out(el)},' +
+    'cron:function(el){out(el).textContent="* * * * * min hour dom month dow"},' +
+    'jwtish:function(el){btn(el,"Token",function(){var s="";for(var i=0;i<20;i++)s+=Math.floor(Math.random()*36).toString(36);document.getElementById("o").textContent=s});out(el)},' +
+    'qibla:function(el){out(el).textContent="From PK, Qibla is roughly West-Southwest. Use a compass for exact."},' +
+    'duas:function(el){var d=["Bismillah","Alhamdulillah","Astaghfirullah","InshaAllah"];btn(el,"Random",function(){document.getElementById("o").textContent=d[Math.floor(Math.random()*4)]});out(el)},' +
+    'sgpa:function(el){field(el,"Points","sg","text","3.5,3,4");btn(el,"Avg",function(){var a=document.getElementById("sg").value.split(",").map(Number).filter(function(x){return !isNaN(x)});document.getElementById("o").textContent=(a.reduce(function(s,x){return s+x},0)/a.length).toFixed(2)});out(el)},' +
+    'table:function(el){field(el,"n","tn","number","7");btn(el,"1-10",function(){var n=+(document.getElementById("tn").value),o=[];for(var i=1;i<=10;i++)o.push(n+"x"+i+"="+(n*i));document.getElementById("o").textContent=o.join(" | ")});out(el)},' +
+    'chem:function(el){var E={H:"Hydrogen",O:"Oxygen",C:"Carbon",Fe:"Iron",Au:"Gold",Na:"Sodium"};field(el,"Symbol","cs","text","Fe");btn(el,"Name",function(){var s=document.getElementById("cs").value;document.getElementById("o").textContent=E[s]||E[s.toUpperCase()]||"?"});out(el)},' +
+    'geo:function(el){var G={Pakistan:"Islamabad",France:"Paris",Japan:"Tokyo",Egypt:"Cairo"};field(el,"Country","gc","text","Pakistan");btn(el,"Capital",function(){document.getElementById("o").textContent=G[document.getElementById("gc").value]||"?"});out(el)},' +
+    'stopw:function(el){var o=out(el);o.style.textAlign="center";o.textContent="0.0";var t=null,ms=0;btn(el,"Start/Stop",function(){if(t){clearInterval(t);t=null;return}var t0=Date.now()-ms;t=setInterval(function(){ms=Date.now()-t0;o.textContent=(ms/1000).toFixed(1)},50)});btn(el,"Reset",function(){clearInterval(t);t=null;ms=0;o.textContent="0.0"})},' +
+    'invoice:function(el){field(el,"Subtotal","it","number","5000");field(el,"Tax%","tx","number","5");btn(el,"Total",function(){var i=+(document.getElementById("it").value),x=+(document.getElementById("tx").value);document.getElementById("o").textContent=String((i*(1+x/100)).toFixed(0))});out(el)},' +
+    'splitb:function(el){field(el,"Total","sbt","number","3000");field(el,"People","sbp","number","4");btn(el,"Each",function(){document.getElementById("o").textContent=String(((+(document.getElementById("sbt").value))/Math.max(1,+(document.getElementById("sbp").value))).toFixed(0))});out(el)},' +
+'about:function(el){out(el).textContent="MiniBot Hub | 55+ offline tools | no internet needed inside the card"}' +
     '};' +
     '})();</script>'
   );

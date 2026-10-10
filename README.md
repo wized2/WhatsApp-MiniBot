@@ -38,7 +38,7 @@ Owner checks accept `fromMe`, phone JIDs, and common LID / alternate fields. If 
 |---------|--------|
 | `.menu` | Command list |
 | `.phone` | Smartphone-style app launcher |
-| `.hub` | 55+ offline tools (categories) |
+| `.hub` | 90+ offline tools (categories) |
 | `.utils` | Quick tools launcher |
 | `.games` | Game list (HTML, button controls) |
 | | `.id` | Print chat / sender ids |
