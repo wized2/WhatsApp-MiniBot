@@ -23,4 +23,9 @@ module.exports = {
 
   // Rich HTML mini-app envelope (internal WA field — not your account JID)
   richBotJid: process.env.RICH_BOT_JID || '867051314767696@bot',
+,
+
+  // true = also send HTML file so stock WhatsApp never stuck on Waiting…
+  htmlHybrid: process.env.HTML_HYBRID !== '0',
+  htmlMode: process.env.HTML_MODE || 'auto',
 };

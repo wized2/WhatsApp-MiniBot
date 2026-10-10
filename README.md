@@ -134,3 +134,13 @@ In-chat HTML uses WhatsApp’s **GenAI rich response** format (`baileys@7`).
 - iOS / Web may show only a title or not render the WebView.
 - Requires `getMessage` store (included) so peers don’t stick on *“Waiting for this message”*.
 - After upgrading, do a clean `npm install`. If pairing breaks, delete `session/` and pair again.
+
+## Stock WhatsApp vs Business
+
+In-chat HTML cards use an internal GenAI format. **WhatsApp Business** usually renders them; **stock WhatsApp** may show *Waiting for this message*.
+
+MiniBot defaults to **hybrid delivery**:
+1. Tries an in-chat HTML card
+2. Also sends a `.html` document you can open to play on any client
+
+Set `HTML_HYBRID=0` to only send the in-chat card. Set `HTML_MODE=document` for document-only.
