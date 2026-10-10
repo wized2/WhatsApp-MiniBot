@@ -7,18 +7,19 @@ module.exports = {
   async handler({ reply }) {
     await reply(
 `+-- MiniBot --+
-| .phone  multi-page apps
-| .hub    90+ tools
+| .phone  launcher
+| .hub    90+ offline tools
 | .utils  quick tools
 | .games  70+ games
-| .ping .id
-| .fact .joke .quote
-| .coin .dice .choose
-| .truth .rather .roast
-| .send .sendgame
+| .apimenu  online APIs
+| .funapi   fun APIs
+| .weather .pray .rate
+| .define .tr .github
+| .dog .cat .qr .trivia
+| .ping .id .send
 +--------------+
-.hub = offline toolkit
-.games = full list`
+.apimenu = interactive API list
+Anti-spam rate limit is on`
     );
   },
 };

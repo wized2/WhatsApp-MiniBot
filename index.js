@@ -6,6 +6,8 @@ const config = require('./config');
 const { loadPlugins, matchPlugin, extractText } = require('./lib/pluginLoader');
 const { startPairServer } = require('./lib/pairServer');
 const msgStore = require('./lib/msgStore');
+const antiBan = require('./lib/antiBan');
+const { consumeSession, peekSession } = require('./lib/interactive');
 
 const {
   default: makeWASocket,
@@ -272,8 +274,56 @@ async function startBot() {
           !!m.key.fromMe
         );
 
+        // Interactive menu: reply with a number while session active
+        if (/^\d{1,2}$/.test(text.trim()) && peekSession(jid)) {
+          const opt = consumeSession(jid, text.trim());
+          if (opt && typeof opt.run === 'function') {
+            const reply = async (content) => {
+              return antiBan.enqueueSend(async () => {
+                const body =
+                  typeof content === 'string'
+                    ? { text: antiBan.softText(content, antiBan.isGroup(jid)) }
+                    : content;
+                const sent = await sock.sendMessage(jid, body, { quoted: m });
+                if (sent) msgStore.put(sent);
+                return sent;
+              });
+            };
+            await opt.run({
+              sock,
+              m,
+              jid,
+              sender,
+              text,
+              arg: '',
+              args: [],
+              cmd: 'menu-pick',
+              config,
+              plugins,
+              reply,
+            });
+            continue;
+          }
+        }
+
         const hit = matchPlugin(plugins, text, config.prefix);
         if (!hit) continue;
+
+        // Anti-ban: per-chat rate limit
+        const gate = antiBan.allowCommand(jid);
+        if (!gate.ok) {
+          await sock.sendMessage(
+            jid,
+            {
+              text:
+                'Rate limit — wait ~' +
+                Math.ceil(gate.waitMs / 1000) +
+                's (protects the number from spam flags).',
+            },
+            { quoted: m }
+          );
+          continue;
+        }
 
         console.log('[cmd]', hit.cmd, '→', hit.plugin.file, 'by', sender);
 
@@ -289,24 +339,27 @@ async function startBot() {
           config,
           plugins,
           reply: async (content) => {
-            try {
-              let sent;
-              if (typeof content === 'string') {
-                sent = await sock.sendMessage(jid, { text: content }, { quoted: m });
-              } else {
-                sent = await sock.sendMessage(jid, content, { quoted: m });
-              }
-              if (sent) msgStore.put(sent);
-              return sent;
-            } catch (err) {
-              console.error('[reply]', err.message || err);
-              if (typeof content === 'string') {
-                const sent = await sock.sendMessage(jid, { text: content });
+            return antiBan.enqueueSend(async () => {
+              try {
+                let payload = content;
+                if (typeof content === 'string') {
+                  payload = { text: antiBan.softText(content, antiBan.isGroup(jid)) };
+                }
+                const sent = await sock.sendMessage(jid, payload, { quoted: m });
                 if (sent) msgStore.put(sent);
                 return sent;
+              } catch (err) {
+                console.error('[reply]', err.message || err);
+                if (typeof content === 'string') {
+                  const sent = await sock.sendMessage(jid, {
+                    text: antiBan.softText(content, antiBan.isGroup(jid)),
+                  });
+                  if (sent) msgStore.put(sent);
+                  return sent;
+                }
+                throw err;
               }
-              throw err;
-            }
+            });
           },
         };
 
