@@ -34,7 +34,7 @@ const cmds = [
       if (gate) return reply(gate);
       const city = (arg || 'Karachi').trim().replace(/\s+/g, '+');
       await safe(async () => {
-        const t = await getText('https://wttr.in/' + encodeURIComponent(city) + '?format=%l:+%c+%t+(feels+%f)+Humidity+%h+Wind+%w');
+        const t = await getText('https://wttr.in/' + encodeURIComponent(city) + '?format=%l:+%c+%t+(feels+%f)+Humidity+%h+Wind+%w', { ua: 'curl/8.0' });
         await reply(String(t).trim() || 'No data');
       }, reply);
     },
@@ -50,7 +50,7 @@ const cmds = [
       if (gate) return reply(gate);
       const city = (arg || 'Karachi').trim();
       await safe(async () => {
-        const j = await getJson('https://wttr.in/' + encodeURIComponent(city) + '?format=j1');
+        const j = await getJson('https://wttr.in/' + encodeURIComponent(city) + '?format=j1', { ua: 'curl/8.0' });
         const cur = j.current_condition?.[0];
         const d0 = j.weather?.[0];
         if (!cur) return reply('No forecast');
