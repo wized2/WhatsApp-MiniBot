@@ -34,7 +34,7 @@ module.exports = {
       }
       const plugins = ctx.plugins || [];
       const hit = matchPlugin(plugins, (cfg.prefix || '.') + game, cfg.prefix || '.');
-      if (!hit || hit.cmd === 'games' || hit.cmd === 'moregames') {
+      if (!hit || hit.cmd === 'games') {
         return reply('Unknown game. Type .games');
       }
       await reply('Sending ' + game + ' -> ' + target);

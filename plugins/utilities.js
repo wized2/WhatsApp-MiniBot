@@ -46,10 +46,10 @@ back.onclick=()=>{tool.classList.remove('on');home.classList.add('on')}
 );
 
 module.exports = {
-  name: 'utilities',
+  name: 'utils',
   pattern: 'utils',
-  aliases: ['tools', 'utilities', 'util'],
-  desc: 'Everyday tools launcher (BMI, EMI, FX, password, units…)',
+  aliases: ['util', 'tools', 'utilities', 'tool'],
+  desc: 'Tools launcher',
   category: 'tools',
   async handler({ sock, jid }) {
     await sendHtmlApp(sock, jid, UTILS_HTML, 'Tools');

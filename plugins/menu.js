@@ -15,9 +15,10 @@ module.exports = {
 | .fact .joke .quote
 | .coin .dice .choose
 | .password .time
-| .ship .love .rate
 | .send .sendgame
-+--------------+`
++--------------+
+Type .games for full game list
+Type .utils for tools`
     );
   },
 };

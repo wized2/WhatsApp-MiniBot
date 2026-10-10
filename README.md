@@ -40,8 +40,7 @@ Owner checks accept `fromMe`, phone JIDs, and common LID / alternate fields. If 
 | `.phone` | Smartphone-style app launcher |
 | `.utils` | Tools launcher |
 | `.games` | Game list (HTML, button controls) |
-| `.gamesnew` | Extra games list |
-| `.id` | Print chat / sender ids |
+| | `.id` | Print chat / sender ids |
 | `.send <jid> <text>` | Owner: send text to a chat |
 | `.sendgame <jid> <game>` | Owner: send a game to a chat |
 | `.ping` | Latency |
