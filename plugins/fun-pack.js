@@ -43,11 +43,11 @@ const TIPS = [
 module.exports = [
   {
     name: 'fact', pattern: 'fact', aliases: ['facts'], desc: 'Random fun fact', category: 'fun',
-    async handler({ reply }) { await reply('💡 *Fact*\n' + pick(FACTS)); },
+    async handler({ reply }) { await reply(' *Fact*\n' + pick(FACTS)); },
   },
   {
     name: 'joke', pattern: 'joke', aliases: ['jokes'], desc: 'Random joke', category: 'fun',
-    async handler({ reply }) { await reply('😄 ' + pick(JOKES)); },
+    async handler({ reply }) { await reply(' ' + pick(JOKES)); },
   },
   {
     name: 'quote', pattern: 'quote', aliases: ['quotes'], desc: 'Motivational quote', category: 'fun',
@@ -65,7 +65,7 @@ module.exports = [
     async handler({ reply, arg }) {
       const n = Math.min(6, Math.max(1, parseInt(arg, 10) || 1));
       const rolls = Array.from({ length: n }, () => 1 + Math.floor(Math.random() * 6));
-      await reply('🎲 ' + rolls.join(' · ') + (n > 1 ? `\nSum: ${rolls.reduce((a, b) => a + b, 0)}` : ''));
+      await reply(' ' + rolls.join(' · ') + (n > 1 ? `\nSum: ${rolls.reduce((a, b) => a + b, 0)}` : ''));
     },
   },
   {
@@ -73,13 +73,13 @@ module.exports = [
     async handler({ reply, arg }) {
       const parts = String(arg || '').split(/[,|]/).map((s) => s.trim()).filter(Boolean);
       if (parts.length < 2) return reply('Usage: `.choose pizza, burger, pasta`');
-      await reply('🎯 *' + pick(parts) + '*');
+      await reply(' *' + pick(parts) + '*');
     },
   },
   {
     name: 'rate', pattern: 'rate', desc: 'Rate something 0-100', category: 'fun',
     async handler({ reply, arg }) {
-      await reply(`📊 *${String(arg || 'this').trim()}*\n${Math.floor(Math.random() * 101)}/100`);
+      await reply(` *${String(arg || 'this').trim()}*\n${Math.floor(Math.random() * 101)}/100`);
     },
   },
   {
@@ -87,7 +87,7 @@ module.exports = [
     async handler({ reply, arg }) {
       const parts = String(arg || '').split(/[,&+|]/).map((s) => s.trim()).filter(Boolean);
       if (parts.length < 2) return reply('Usage: `.ship A, B`');
-      await reply(`💕 ${parts[0]} + ${parts[1]}\n*${Math.floor(Math.random() * 101)}%* match`);
+      await reply(` ${parts[0]} + ${parts[1]}\n*${Math.floor(Math.random() * 101)}%* match`);
     },
   },
   {
@@ -95,7 +95,7 @@ module.exports = [
     async handler({ reply, arg }) {
       const parts = String(arg || '').split(/[,&+]/).map((s) => s.trim()).filter(Boolean);
       if (parts.length < 2) return reply('Usage: `.love A, B`');
-      await reply(`❤️ ${parts[0]} × ${parts[1]}\n*${Math.floor(Math.random() * 101)}%*`);
+      await reply(`️ ${parts[0]} × ${parts[1]}\n*${Math.floor(Math.random() * 101)}%*`);
     },
   },
   {
@@ -105,7 +105,7 @@ module.exports = [
       const c = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%';
       let s = '';
       for (let i = 0; i < n; i++) s += c[Math.floor(Math.random() * c.length)];
-      await reply('🔐 `' + s + '`');
+      await reply(' `' + s + '`');
     },
   },
   {
@@ -122,7 +122,7 @@ module.exports = [
   {
     name: 'time', pattern: 'time', aliases: ['clock', 'date'], desc: 'Current PKT time', category: 'tools',
     async handler({ reply }) {
-      await reply('🕐 ' + new Date().toLocaleString('en-PK', { timeZone: 'Asia/Karachi' }) + ' (PKT)');
+      await reply(' ' + new Date().toLocaleString('en-PK', { timeZone: 'Asia/Karachi' }) + ' (PKT)');
     },
   },
   {
@@ -142,7 +142,7 @@ module.exports = [
   {
     name: 'emoji', pattern: 'emoji', aliases: ['emojify'], desc: 'Emoji shower', category: 'fun',
     async handler({ reply }) {
-      const e = '😀😎🔥✨🎉💯🚀🌈🍕🐱🐶⭐💡🎯🏆❤️';
+      const e = '⭐️';
       let s = '';
       for (let i = 0; i < 12; i++) s += e[Math.floor(Math.random() * e.length)] + ' ';
       await reply(s.trim());
@@ -151,7 +151,7 @@ module.exports = [
   {
     name: 'yesno', pattern: 'yesno', aliases: ['yn'], desc: 'Yes or no', category: 'fun',
     async handler({ reply, arg }) {
-      await reply((Math.random() < 0.5 ? '✅ *Yes*' : '❌ *No*') + (arg ? `\n_${arg}_` : ''));
+      await reply((Math.random() < 0.5 ? ' *Yes*' : ' *No*') + (arg ? `\n_${arg}_` : ''));
     },
   },
   {
@@ -170,7 +170,7 @@ module.exports = [
   },
   {
     name: 'wisdom', pattern: 'wisdom', aliases: ['advice'], desc: 'Random advice', category: 'fun',
-    async handler({ reply }) { await reply('🧠 ' + pick(TIPS)); },
+    async handler({ reply }) { await reply(' ' + pick(TIPS)); },
   },
   {
     name: 'zalgo', pattern: 'zalgo', desc: 'Spooky text', category: 'fun',
@@ -262,13 +262,13 @@ module.exports = [
     async handler({ reply, arg }) {
       if (!arg) return reply('Usage: `.palindrome text`');
       const s = String(arg).toLowerCase().replace(/[^a-z0-9]/g, '');
-      await reply(s && s === [...s].reverse().join('') ? '✅ Palindrome' : '❌ Not a palindrome');
+      await reply(s && s === [...s].reverse().join('') ? ' Palindrome' : ' Not a palindrome');
     },
   },
   {
     name: 'motivate', pattern: 'motivate', aliases: ['motivation'], desc: 'Motivation boost', category: 'fun',
     async handler({ reply }) {
-      await reply('🔥 ' + pick([
+      await reply(' ' + pick([
         'You do not have to be perfect. You have to start.',
         'One focused hour beats a distracted day.',
         'Progress > motivation. Do the next small step.',

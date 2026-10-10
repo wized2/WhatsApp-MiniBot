@@ -6,18 +6,18 @@ module.exports = {
   category: 'main',
   async handler({ reply }) {
     await reply(
-`╭── ᴍɪɴɪʙᴏᴛ ──╮
-│ .phone
-│ .utils
-│ .games
-│ .ping
-│ .id
-│ .fact  .joke  .quote
-│ .coin  .dice  .choose
-│ .password  .time
-│ .ship  .love  .rate
-│ .wisdom  .motivate
-╰─────────────╯`
+`+-- MiniBot --+
+| .phone
+| .utils
+| .games
+| .ping
+| .id
+| .fact .joke .quote
+| .coin .dice .choose
+| .password .time
+| .ship .love .rate
+| .send .sendgame
++--------------+`
     );
   },
 };

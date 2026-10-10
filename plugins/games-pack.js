@@ -349,9 +349,10 @@ const ORDER = Object.keys(G);
 
 function gamesList() {
   const lines = [
-    '╭─── ᴄʜᴀᴛ ɢᴀᴍᴇꜱ ───╮',
-    ...ORDER.map((id, i) => `│ ${String(i + 1).padStart(2, ' ')}. .${id}`),
-    '╰────────────────╯',
+    '+-- Chat Games --+',
+    ...ORDER.map((id, i) => '| ' + String(i + 1).padStart(2, ' ') + '. .' + id),
+    '| .gamesnew for more',
+    '+----------------+',
   ];
   return lines.join('\n');
 }

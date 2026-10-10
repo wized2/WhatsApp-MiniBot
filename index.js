@@ -19,7 +19,32 @@ const {
 const sessionDir = path.resolve(config.sessionDir);
 if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
-const plugins = loadPlugins(path.join(__dirname, 'plugins'));
+let plugins = loadPlugins(path.join(__dirname, 'plugins'));
+
+function reloadPlugins(reason) {
+  try {
+    const next = loadPlugins(path.join(__dirname, 'plugins'));
+    plugins = next;
+    console.log('[plugins] hot-reload', reason || '', 'count=', plugins.length);
+  } catch (e) {
+    console.error('[plugins] hot-reload failed', e.message);
+  }
+}
+
+// Hot-swap plugins without restarting the socket
+try {
+  const pluginsDir = path.join(__dirname, 'plugins');
+  let timer = null;
+  fs.watch(pluginsDir, { persistent: false }, (event, file) => {
+    if (!file || !String(file).endsWith('.js')) return;
+    clearTimeout(timer);
+    timer = setTimeout(() => reloadPlugins(event + ':' + file), 400);
+  });
+  console.log('[plugins] watching', pluginsDir);
+} catch (e) {
+  console.warn('[plugins] watch unavailable', e.message);
+}
+
 
 const state = {
   connected: false,
