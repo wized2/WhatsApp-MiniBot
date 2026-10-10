@@ -148,3 +148,31 @@ Mini-apps use WhatsApp's internal `GenAIaeacdsnwHtmlPrimitive` (Android WebView)
 MiniBot implements both. Still Android-focused; iOS/Web may only show the title label.
 
 Env: `HTML_BYPASS_DOWNLOAD=0` disables the edit follow-up.
+
+## Phone launcher
+
+```
+.phone
+.mobile
+.launcher
+```
+
+In-chat smartphone home screen: clock widget, swipeable app pages, dock, and offline apps
+(calculator, notes, tasks, timer, BMI, EMI, FX, password, units, games shortcuts, …).
+
+## Tools
+
+```
+.utils
+.tools
+```
+
+## KataBump / one-file host
+
+```bash
+node katabump.js
+```
+
+Edit the **CONFIG** block at the top of `katabump.js` (`phone`, `port`, `repoUrl`).
+It clones/pulls the repo, patches owner+pair number, and **auto-updates every 5 minutes**.
+
