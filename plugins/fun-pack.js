@@ -276,4 +276,99 @@ module.exports = [
       ]));
     },
   },
+,
+  {
+    name: 'truth', pattern: 'truth', aliases: ['dare'],
+    async handler({ reply, cmd }) {
+      const T=['Biggest fear?','Last lie you told?','Most embarrassing moment?','Who do you text most?'];
+      const D=['Do 10 squats','Talk in an accent for 1 min','Share a childhood nickname','Compliment someone here'];
+      if (cmd==='dare') return reply('Dare: '+D[Math.floor(Math.random()*D.length)]);
+      await reply('Truth: '+T[Math.floor(Math.random()*T.length)]);
+    },
+  },
+  {
+    name: 'rather', pattern: 'rather', aliases: ['wyr'],
+    async handler({ reply }) {
+      const Q=[['Be invisible','Read minds'],['Only pizza','Only rice'],['No internet','No AC']];
+      const x=Q[Math.floor(Math.random()*Q.length)];
+      await reply('Would you rather:\nA) '+x[0]+'\nB) '+x[1]);
+    },
+  },
+  {
+    name: 'roast', pattern: 'roast',
+    async handler({ reply, arg }) {
+      const r=['Your WiFi is faster than your replies.','Even auto-correct gave up.','Main character energy, loading screen skills.'];
+      await reply((arg?arg+' — ':'')+r[Math.floor(Math.random()*r.length)]);
+    },
+  },
+  {
+    name: 'compliment', pattern: 'compliment', aliases: ['nice'],
+    async handler({ reply, arg }) {
+      const c=['You make group chats better.','Solid energy today.','You are doing better than you think.'];
+      await reply((arg?arg+': ':'')+c[Math.floor(Math.random()*c.length)]);
+    },
+  },
+  {
+    name: 'uptime', pattern: 'uptime', aliases: ['runtime'],
+    async handler({ reply }) {
+      const s=Math.floor(process.uptime());
+      const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
+      await reply('Uptime '+h+'h '+m+'m '+sec+'s');
+    },
+  },
+  {
+    name: 'owner', pattern: 'owner', aliases: ['creator'],
+    async handler({ reply, config }) {
+      await reply('Owner: '+(config&&config.ownerNumber?config.ownerNumber:'not set'));
+    },
+  },
+  {
+    name: 'date', pattern: 'date',
+    async handler({ reply }) {
+      await reply(new Date().toString());
+    },
+  },
+  {
+    name: 'slug', pattern: 'slug',
+    async handler({ reply, arg }) {
+      if (!arg) return reply('Usage: .slug Hello World');
+      await reply(String(arg).toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''));
+    },
+  },
+  {
+    name: 'repeat', pattern: 'repeat', aliases: ['echo'],
+    async handler({ reply, args }) {
+      const n=Math.min(20, Math.max(1, parseInt(args[0],10)||1));
+      const text=args.slice(1).join(' ');
+      if (!text) return reply('Usage: .repeat 3 hello');
+      await reply(Array(n).fill(text).join('\n'));
+    },
+  },
+  {
+    name: 'zakat', pattern: 'zakat',
+    async handler({ reply, arg }) {
+      const w=parseFloat(arg);
+      if (!w) return reply('Usage: .zakat 500000');
+      await reply('Zakat 2.5% ~ '+(w*0.025).toFixed(0)+' (if nisab met)');
+    },
+  },
+  {
+    name: 'roman', pattern: 'roman',
+    async handler({ reply, arg }) {
+      let num=parseInt(arg,10);
+      if (!num||num<1||num>3999) return reply('Usage: .roman 2024');
+      const v=[1000,900,500,400,100,90,50,40,10,9,5,4,1],s=['M','CM','D','CD','C','XC','L','XL','X','IX','V','IV','I'];
+      let o='';
+      for (let i=0;i<v.length;i++) while(num>=v[i]){o+=s[i];num-=v[i]}
+      await reply(o);
+    },
+  },
+  {
+    name: 'leap', pattern: 'leap',
+    async handler({ reply, arg }) {
+      const y=parseInt(arg,10);
+      if (!y) return reply('Usage: .leap 2024');
+      await reply(((y%4===0&&y%100!==0)||y%400===0)?'Leap year':'Not leap');
+    },
+  },
 ];

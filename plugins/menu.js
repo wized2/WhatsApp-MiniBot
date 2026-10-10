@@ -7,18 +7,18 @@ module.exports = {
   async handler({ reply }) {
     await reply(
 `+-- MiniBot --+
-| .phone
-| .utils
-| .games
-| .ping
-| .id
+| .phone   launcher
+| .hub     55+ tools
+| .utils   quick tools
+| .games   all games
+| .ping .id
 | .fact .joke .quote
 | .coin .dice .choose
 | .password .time
 | .send .sendgame
 +--------------+
-Type .games for full game list
-Type .utils for tools`
+.hub = full offline toolkit
+.games = full game list`
     );
   },
 };
