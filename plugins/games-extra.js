@@ -258,6 +258,67 @@ document.getElementById('clr').onclick=()=>x.clearRect(0,0,300,240);
 window.onGameStart=function(){x.clearRect(0,0,300,240)};
 <\/script>`, 'Draw on the pad');
 
+
+add('frog', 'Hop',
+`canvas{width:100%;max-width:280px}`,
+`<canvas id="c" width="280" height="200"></canvas><button id="j" style="width:100%">Hop</button>
+<script>
+const c=document.getElementById('c'),x=c.getContext('2d');
+let y,vy,cars,sc,dead,raf;
+document.getElementById('j').onclick=()=>{if(window.__gameRunning&&!dead&&y>=160)vy=-8};
+function loop(){
+  if(!window.__gameRunning){raf=requestAnimationFrame(loop);return}
+  x.fillStyle='#0f172a';x.fillRect(0,0,280,200);
+  x.fillStyle='#1e293b';x.fillRect(0,80,280,40);
+  cars.forEach(c0=>{c0.x+=c0.v;if(c0.x>300)c0.x=-40;if(c0.x<-40)c0.x=300;
+    x.fillStyle='#ef4444';x.fillRect(c0.x,c0.y,28,14);
+    if(Math.abs(c0.x-20)<24&&Math.abs(c0.y-y)<16){dead=true;showEnd('Squished','Score '+sc)}});
+  if(!dead){vy+=0.4;y+=vy;if(y>160){y=160;vy=0}if(y<20){y=160;sc++;setStat('Score '+sc)}}
+  x.fillStyle='#22c55e';x.fillRect(20,y,14,14);
+  raf=requestAnimationFrame(loop);
+}
+window.onGameStart=function(){y=160;vy=0;sc=0;dead=false;cars=[{x:0,y:90,v:2},{x:200,y:110,v:-2.5}];setStat('Score 0');cancelAnimationFrame(raf);loop()};
+<\/script>`, 'Cross the road');
+
+add('match3', 'Match Color',
+`.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.c{aspect-ratio:1;border:0;border-radius:10px}`,
+`<div class="grid" id="g"></div>
+<script>
+const cols=['#ef4444','#22c55e','#3b82f6','#eab308'];
+let board,sel,sc;
+function draw(){const g=document.getElementById('g');g.innerHTML='';
+  board.forEach((c,i)=>{const b=document.createElement('button');b.className='c';b.style.background=c;
+    b.onclick=()=>{if(!window.__gameRunning)return;if(sel<0){sel=i;b.style.outline='2px solid #fff'}
+      else{const j=sel;sel=-1;[board[i],board[j]]=[board[j],board[i]];
+        // simple clear matches of 3 in row
+        for(let r=0;r<4;r++){const row=board.slice(r*4,r*4+4);if(row.every(x=>x===row[0])){sc+=3;for(let k=0;k<4;k++)board[r*4+k]=cols[Math.floor(Math.random()*4)]}}
+        setStat('Score '+sc);if(sc>=15)showEnd('Nice!','Score '+sc);draw()}}};
+    g.appendChild(b)})}
+window.onGameStart=function(){board=Array.from({length:16},()=>cols[Math.floor(Math.random()*4)]);sel=-1;sc=0;setStat('Score 0');draw()};
+<\/script>`, 'Swap · match 3');
+
+add('bounce2', 'Keep Up',
+`canvas{width:100%;max-width:280px}`,
+`<canvas id="c" width="280" height="240"></canvas>
+<script>
+const c=document.getElementById('c'),x=c.getContext('2d');
+let bx,by,vx,vy,px,sc,raf;
+c.onpointermove=e=>{const r=c.getBoundingClientRect();px=(e.clientX-r.left)*(c.width/r.width)-28};
+function loop(){
+  if(!window.__gameRunning){raf=requestAnimationFrame(loop);return}
+  x.fillStyle='#0f172a';x.fillRect(0,0,280,240);
+  x.fillStyle='#10b981';x.fillRect(px,220,56,8);
+  bx+=vx;by+=vy;vy+=0.15;
+  if(bx<8||bx>272)vx*=-1;if(by<8)vy=Math.abs(vy);
+  if(by>212&&bx>px&&bx<px+56){vy=-6-Math.random();sc++;setStat('Score '+sc)}
+  if(by>250)showEnd('Dropped','Score '+sc);
+  x.fillStyle='#f8fafc';x.beginPath();x.arc(bx,by,8,0,6.28);x.fill();
+  raf=requestAnimationFrame(loop);
+}
+window.onGameStart=function(){bx=140;by=80;vx=2;vy=1;px=110;sc=0;setStat('Score 0');cancelAnimationFrame(raf);loop()};
+<\/script>`, 'Keep the ball up');
+
+
 const ALIASES = Object.keys(G);
 module.exports = {
   name: 'games-extra',

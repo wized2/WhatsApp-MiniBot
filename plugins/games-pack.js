@@ -36,9 +36,10 @@ function turn(nx,ny){if(dir.x+nx||dir.y+ny)dir={x:nx,y:ny}}
 [['u',0,-1],['d',0,1],['l',-1,0],['r',1,0]].forEach(([id,a,b])=>document.getElementById(id).onclick=()=>turn(a,b));
 function tick(){
   if(!window.__gameRunning||dead)return;
-  const h={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
-  if(h.x<0||h.y<0||h.x>=N||h.y>=N||snake.some(s=>s.x===h.x&&s.y===h.y)){
-    dead=true;clearInterval(iv);showEnd('Game Over','Score '+sc);return}
+  // Wrap through walls (human-friendly)
+  const h={x:(snake[0].x+dir.x+N)%N,y:(snake[0].y+dir.y+N)%N};
+  if(snake.some(s=>s.x===h.x&&s.y===h.y)){
+    dead=true;clearInterval(iv);showEnd('Game Over','Score '+sc+' · hit self');return}
   snake.unshift(h);
   if(h.x===food.x&&h.y===food.y){sc++;place()}else snake.pop();
   x.fillStyle='#0d1117';x.fillRect(0,0,300,300);
