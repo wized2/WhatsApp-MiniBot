@@ -135,12 +135,16 @@ In-chat HTML uses WhatsApp’s **GenAI rich response** format (`baileys@7`).
 - Requires `getMessage` store (included) so peers don’t stick on *“Waiting for this message”*.
 - After upgrading, do a clean `npm install`. If pairing breaks, delete `session/` and pair again.
 
-## Stock WhatsApp vs Business
+## In-chat HTML (Business + stock Android)
 
-In-chat HTML cards use an internal GenAI format. **WhatsApp Business** usually renders them; **stock WhatsApp** may show *Waiting for this message*.
+Mini-apps use WhatsApp's internal `GenAIaeacdsnwHtmlPrimitive` (Android WebView).
 
-MiniBot defaults to **hybrid delivery**:
-1. Tries an in-chat HTML card
-2. Also sends a `.html` document you can open to play on any client
+**What research shows:**
+- Works as in-chat card on many **WhatsApp Business** Android builds
+- **Stock WhatsApp** often shows *Waiting for this message* until the card is re-rendered
+- Proven fix used by elaina-baileys / @yudzxml: after `relayMessage`, send **protocolMessage type 14 (MESSAGE_EDIT)** with the same body (`bypassDownload`)
+- `getMessage` must return the **full** original message on retry (never `{}`)
 
-Set `HTML_HYBRID=0` to only send the in-chat card. Set `HTML_MODE=document` for document-only.
+MiniBot implements both. Still Android-focused; iOS/Web may only show the title label.
+
+Env: `HTML_BYPASS_DOWNLOAD=0` disables the edit follow-up.
