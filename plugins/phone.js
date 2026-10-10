@@ -21,8 +21,7 @@ function phoneBody() {
     '</div>' +
     '<script>(function(){' +
     'var APPS=[' +
-    /* page 0 - daily */ +
-    '{id:"calc",n:"Calc",l:"CL",c:"#0ea5e9",p:0},' +
+        '{id:"calc",n:"Calc",l:"CL",c:"#0ea5e9",p:0},' +
     '{id:"notes",n:"Notes",l:"NT",c:"#eab308",p:0},' +
     '{id:"todo",n:"Tasks",l:"TK",c:"#22c55e",p:0},' +
     '{id:"timer",n:"Timer",l:"TM",c:"#f97316",p:0},' +
@@ -30,8 +29,7 @@ function phoneBody() {
     '{id:"focus",n:"Focus",l:"FC",c:"#8b5cf6",p:0},' +
     '{id:"counter",n:"Counter",l:"CT",c:"#06b6d4",p:0},' +
     '{id:"world",n:"Clocks",l:"WC",c:"#059669",p:0},' +
-    /* page 1 - tools */ +
-    '{id:"bmi",n:"BMI",l:"BM",c:"#14b8a6",p:1},' +
+        '{id:"bmi",n:"BMI",l:"BM",c:"#14b8a6",p:1},' +
     '{id:"age",n:"Age",l:"AG",c:"#ec4899",p:1},' +
     '{id:"unit",n:"Units",l:"UN",c:"#0ea5e9",p:1},' +
     '{id:"fx",n:"FX",l:"FX",c:"#84cc16",p:1},' +
@@ -43,8 +41,7 @@ function phoneBody() {
     '{id:"words",n:"Words",l:"WD",c:"#3b82f6",p:1},' +
     '{id:"pass",n:"Password",l:"PW",c:"#64748b",p:1},' +
     '{id:"rand",n:"Random",l:"RN",c:"#f43f5e",p:1},' +
-    /* page 2 - fun + more */ +
-    '{id:"dice",n:"Dice",l:"DC",c:"#ef4444",p:2},' +
+        '{id:"dice",n:"Dice",l:"DC",c:"#ef4444",p:2},' +
     '{id:"coin",n:"Coin",l:"CN",c:"#f59e0b",p:2},' +
     '{id:"rps",n:"RPS",l:"RP",c:"#6366f1",p:2},' +
     '{id:"ball",n:"8Ball",l:"8B",c:"#334155",p:2},' +
