@@ -71,6 +71,16 @@ async function startBot() {
   const { version } = await fetchLatestBaileysVersion();
 
   // Custom browser labels produce DEAD pairing codes WhatsApp rejects.
+
+  // Retry counter — without this, peers stay on "Waiting for this message"
+  const msgRetryCounterCache = {
+    get: (k) => msgRetryCounterCache._m.get(k),
+    set: (k, v) => { msgRetryCounterCache._m.set(k, v); return true; },
+    del: (k) => msgRetryCounterCache._m.delete(k),
+    flushAll: () => msgRetryCounterCache._m.clear(),
+    _m: new Map(),
+  };
+
   const sock = makeWASocket({
     version,
     logger: pino({ level: 'silent' }),
@@ -87,6 +97,7 @@ async function startBot() {
     markOnlineOnConnect: false,
     // Critical: answer retry requests so peers don't stick on "Waiting for this message"
     getMessage: msgStore.getMessage,
+    msgRetryCounterCache,
   });
 
   sockRef = sock;
