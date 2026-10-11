@@ -274,8 +274,8 @@ async function startBot() {
           !!m.key.fromMe
         );
 
-        // Interactive menu: reply with a number while session active
-        if (/^\d{1,2}$/.test(text.trim()) && peekSession(jid)) {
+        // Interactive menu: number reply OR native button/list id
+        if (peekSession(jid) && (/^\d{1,2}$/.test(text.trim()) || text.trim().startsWith('opt_') || text.includes('_'))) {
           const opt = consumeSession(jid, text.trim());
           if (opt && typeof opt.run === 'function') {
             const reply = async (content) => {

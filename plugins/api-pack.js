@@ -936,8 +936,8 @@ const cmds = [
   // —— Interactive hubs ——
   {
     name: 'apimenu',
-    pattern: 'apimenu',
-    aliases: ['apihelp', 'online'],
+    pattern: 'api',
+    aliases: ['apimenu', 'online', 'apihelp'],
     desc: 'Interactive API command menu',
     category: 'api',
     async handler(ctx) {
@@ -1000,8 +1000,8 @@ const cmds = [
   },
   {
     name: 'funapi',
-    pattern: 'funapi',
-    aliases: ['funmenu'],
+    pattern: 'fun',
+    aliases: ['funapi', 'funmenu'],
     desc: 'Interactive fun API menu',
     category: 'api',
     async handler(ctx) {

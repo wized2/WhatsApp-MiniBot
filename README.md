@@ -1,75 +1,110 @@
 # WhatsApp MiniBot
 
-In-chat HTML mini-apps and games for WhatsApp (Baileys). Pairing site, plugin system, hot-reload.
+Self-hosted WhatsApp multi-device bot with **in-chat mini-apps**, games, offline tools, and live API commands.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](package.json)
+
+## Features
+
+- Pairing-code login (web UI on `PORT`)
+- Plugin system with hot-reload
+- **Phone** launcher (`.phone`) — dialer, messages, camera, gallery, maps, …
+- **Hub** offline toolkit (`.hub`) — 90+ tools
+- **Games** (`.games`) — 70+ button mini-games
+- **Live APIs** (`.api`, `.weather`, `.pray`, `.define`, …)
+- Native interactive **lists / quick-reply** menus when the client supports them
+- Anti-spam rate limits and send jitter
 
 ## Quick start
 
 ```bash
+git clone https://github.com/wized2/WhatsApp-MiniBot.git
+cd WhatsApp-MiniBot
 npm install
-# edit config.js — set ownerNumber / pairNumber (digits only, country code)
-node index.js
+# edit config.js — ownerNumber / pairNumber
+npm start
 ```
 
-Open `http://HOST:PORT/` for QR / pairing code.
+Open `http://localhost:3000`, request a pairing code, enter it in WhatsApp → Linked devices.
 
-### One-file host (KataBump / VPS)
+### KataBump one-file runner
 
 ```bash
 node katabump.js
 ```
 
-Edit the CONFIG block at the top of `katabump.js` (`phone`, `port`, `repoUrl`).
-Auto-updates from GitHub every 5 minutes and restarts on new commits.
+Config block is at the top of `katabump.js` (phone, port, auto-update interval).
 
-## Config
+## Commands (common)
 
-`config.js`:
+| Command | Description |
+|---------|-------------|
+| `.menu` | Command overview |
+| `.phone` | Smartphone-style launcher |
+| `.hub` | Offline multi-tool hub |
+| `.utils` | Quick tools |
+| `.games` | Game list |
+| `.api` | Interactive API menu |
+| `.fun` | Fun API menu |
+| `.weather <city>` | Live weather |
+| `.pray <city>` | Prayer times |
+| `.rate USD PKR` | Exchange rate |
+| `.define <word>` | Dictionary |
+| `.tr en\|ur text` | Translate |
+| `.github user` / `user/repo` | GitHub info |
+| `.id` | Chat / group id |
+| `.send` / `.sendgame` | Owner relay |
 
-- `ownerNumber` — full international digits (e.g. `923073477752`), used for `.send` / `.sendgame`
-- `pairNumber` — same number used when requesting a pairing code
-- `prefix` — command prefix (default `.`)
-- `port` / `host`
+Prefix defaults to `.` (`config.prefix`).
 
-Owner checks accept `fromMe`, phone JIDs, and common LID / alternate fields. If a command says owner-only, compare the id printed in the reply with `ownerNumber`.
+## Project layout
 
-## Commands
+```
+index.js          # socket + message router
+config.js         # bot settings
+katabump.js       # single-file deploy helper
+lib/              # transport, anti-ban, interactive, games
+plugins/          # commands (hot-reloaded)
+public/           # pairing site assets
+scripts/          # tests
+```
 
-| Command | Action |
-|---------|--------|
-| `.menu` | Command list |
-| `.phone` | Smartphone-style app launcher |
-| `.apimenu` | Interactive online API tools |
-| `.weather` `.pray` `.rate` `.define` | Live API commands |
-| `.hub` | 90+ offline tools (categories) |
-| `.utils` | Quick tools launcher |
-| `.games` | Game list (HTML, button controls) |
-| | `.id` | Print chat / sender ids |
-| `.send <jid> <text>` | Owner: send text to a chat |
-| `.sendgame <jid> <game>` | Owner: send a game to a chat |
-| `.ping` | Latency |
+## Configuration
 
-Fun/tools: `.fact` `.joke` `.quote` `.coin` `.dice` `.choose a,b` `.password` `.time` …
+Edit `config.js`:
 
-## Plugins
+| Key | Purpose |
+|-----|---------|
+| `ownerNumber` | Owner digits (country code, no +) |
+| `pairNumber` | Number used for pairing API |
+| `prefix` | Command prefix |
+| `port` | Pairing web UI port |
 
-Files in `plugins/` export `{ pattern, aliases, handler }` or an **array** of those.
-Plugins are **hot-reloaded** when files change (no full process restart required for plugin edits).
-
-## HTML mini-apps
-
-Games and tools are self-contained HTML (no external network inside the card by default).
-Controls use **on-screen buttons** so WhatsApp swipe gestures do not steal input.
+Environment: `PORT`, `PUBLIC_URL`, `RICH_BOT_JID`, `HTML_BYPASS_DOWNLOAD`.
 
 ## Development
 
 ```bash
-node --check index.js
-node --check plugins/*.js lib/*.js
-npm test
+npm test          # syntax + plugin load checks
+npm start
 ```
 
-GitHub Actions runs syntax checks on push.
+Add a plugin under `plugins/` exporting `{ pattern, handler }` or an array of commands.
+
+## Security & anti-ban
+
+- Per-chat command rate limit
+- Queued outbound messages with random delay
+- API cooldown keys
+- Group replies truncated when very long
+
+Unofficial clients can still risk account restrictions. Use a secondary number for experiments.
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).

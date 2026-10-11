@@ -26,44 +26,37 @@ function phoneBody() {
     '</div>' +
     '<script>(function(){' +
     'var APPS=[' +
-    '{id:"calc",n:"Calc",l:"CL",c:"#0ea5e9",p:0},' +
-    '{id:"notes",n:"Notes",l:"NT",c:"#eab308",p:0},' +
-    '{id:"todo",n:"Tasks",l:"TK",c:"#22c55e",p:0},' +
-    '{id:"timer",n:"Timer",l:"TM",c:"#f97316",p:0},' +
-    '{id:"stop",n:"Stopwatch",l:"SW",c:"#a855f7",p:0},' +
-    '{id:"focus",n:"Focus",l:"FC",c:"#8b5cf6",p:0},' +
-    '{id:"counter",n:"Counter",l:"CT",c:"#06b6d4",p:0},' +
-    '{id:"world",n:"Clocks",l:"WC",c:"#059669",p:0},' +
-    '{id:"bmi",n:"BMI",l:"BM",c:"#14b8a6",p:1},' +
-    '{id:"age",n:"Age",l:"AG",c:"#ec4899",p:1},' +
-    '{id:"unit",n:"Units",l:"UN",c:"#0ea5e9",p:1},' +
-    '{id:"fx",n:"FX",l:"FX",c:"#84cc16",p:1},' +
-    '{id:"emi",n:"EMI",l:"EM",c:"#8b5cf6",p:1},' +
-    '{id:"pct",n:"Percent",l:"%",c:"#f59e0b",p:1},' +
-    '{id:"disc",n:"Discount",l:"DS",c:"#ef4444",p:1},' +
-    '{id:"fuel",n:"Fuel",l:"FL",c:"#ea580c",p:1},' +
-    '{id:"int",n:"Interest",l:"IN",c:"#6366f1",p:1},' +
-    '{id:"words",n:"Words",l:"WD",c:"#3b82f6",p:1},' +
-    '{id:"pass",n:"Password",l:"PW",c:"#64748b",p:1},' +
-    '{id:"rand",n:"Random",l:"RN",c:"#f43f5e",p:1},' +
-    '{id:"dice",n:"Dice",l:"DC",c:"#ef4444",p:2},' +
-    '{id:"coin",n:"Coin",l:"CN",c:"#f59e0b",p:2},' +
-    '{id:"rps",n:"RPS",l:"RP",c:"#6366f1",p:2},' +
-    '{id:"ball",n:"8Ball",l:"8B",c:"#334155",p:2},' +
-    '{id:"spin",n:"Picker",l:"PK",c:"#db2777",p:2},' +
-    '{id:"color",n:"Color",l:"CR",c:"#e11d48",p:2},' +
-    '{id:"flash",n:"Flash",l:"FL",c:"#fbbf24",p:2},' +
-    '{id:"score",n:"Score",l:"SC",c:"#10b981",p:2},' +
-    '{id:"tip",n:"Tip",l:"TP",c:"#14b8a6",p:2},' +
-    '{id:"avg",n:"Average",l:"AV",c:"#0ea5e9",p:2},' +
-    '{id:"marks",n:"Marks",l:"MK",c:"#8b5cf6",p:2},' +
-    '{id:"days",n:"Days left",l:"DL",c:"#f97316",p:3},' +
-    '{id:"check",n:"Checklist",l:"CK",c:"#22c55e",p:3},' +
-    '{id:"cases",n:"Case",l:"Aa",c:"#6366f1",p:3},' +
-    '{id:"rev",n:"Reverse",l:"RV",c:"#db2777",p:3},' +
-    '{id:"morse",n:"Morse",l:"MR",c:"#64748b",p:3},' +
-    '{id:"bin",n:"Binary",l:"BN",c:"#0891b2",p:3},' +
-    '{id:"uid",n:"UUID",l:"ID",c:"#4f46e5",p:3},' +
+    '{id:"phone",n:"Phone",l:"PH",c:"#22c55e",p:0},' +
+    '{id:"msg",n:"Messages",l:"MS",c:"#3b82f6",p:0},' +
+    '{id:"camera",n:"Camera",l:"CM",c:"#64748b",p:0},' +
+    '{id:"gallery",n:"Gallery",l:"GL",c:"#a855f7",p:0},' +
+    '{id:"browser",n:"Browser",l:"BR",c:"#0ea5e9",p:0},' +
+    '{id:"maps",n:"Maps",l:"MP",c:"#10b981",p:0},' +
+    '{id:"calendar",n:"Calendar",l:"CA",c:"#ef4444",p:0},' +
+    '{id:"contacts",n:"Contacts",l:"CT",c:"#f59e0b",p:0},' +
+    '{id:"calc",n:"Calc",l:"CL",c:"#0ea5e9",p:1},' +
+    '{id:"clock",n:"Clock",l:"CK",c:"#6366f1",p:1},' +
+    '{id:"alarm",n:"Alarm",l:"AL",c:"#f97316",p:1},' +
+    '{id:"weather",n:"Weather",l:"WT",c:"#38bdf8",p:1},' +
+    '{id:"music",n:"Music",l:"MU",c:"#ec4899",p:1},' +
+    '{id:"files",n:"Files",l:"FL",c:"#eab308",p:1},' +
+    '{id:"settings",n:"Settings",l:"ST",c:"#94a3b8",p:1},' +
+    '{id:"notes",n:"Notes",l:"NT",c:"#eab308",p:1},' +
+    '{id:"todo",n:"Tasks",l:"TK",c:"#22c55e",p:2},' +
+    '{id:"timer",n:"Timer",l:"TM",c:"#f97316",p:2},' +
+    '{id:"stop",n:"Stopwatch",l:"SW",c:"#a855f7",p:2},' +
+    '{id:"focus",n:"Focus",l:"FC",c:"#8b5cf6",p:2},' +
+    '{id:"flash",n:"Flashlight",l:"LT",c:"#fbbf24",p:2},' +
+    '{id:"compass",n:"Compass",l:"CP",c:"#14b8a6",p:2},' +
+    '{id:"record",n:"Recorder",l:"RC",c:"#f43f5e",p:2},' +
+    '{id:"wallet",n:"Wallet",l:"WL",c:"#84cc16",p:2},' +
+    '{id:"bmi",n:"Health",l:"HL",c:"#14b8a6",p:3},' +
+    '{id:"unit",n:"Units",l:"UN",c:"#0ea5e9",p:3},' +
+    '{id:"fx",n:"FX",l:"FX",c:"#84cc16",p:3},' +
+    '{id:"pass",n:"Password",l:"PW",c:"#64748b",p:3},' +
+    '{id:"dice",n:"Dice",l:"DC",c:"#ef4444",p:3},' +
+    '{id:"coin",n:"Coin",l:"CN",c:"#f59e0b",p:3},' +
+    '{id:"ball",n:"8Ball",l:"8B",c:"#334155",p:3},' +
     '{id:"about",n:"About",l:"i",c:"#475569",p:3}' +
     '];' +
     'var DOCK=["calc","notes","todo","focus"];' +
@@ -237,7 +230,25 @@ function phoneBody() {
     'else document.getElementById("o").textContent=s.split("").map(function(c){return c.charCodeAt(0).toString(2).padStart(8,"0")}).join(" ")});out(el)},' +
     'uid:function(el){btn(el,"Generate",function(){var s="";for(var i=0;i<32;i++)s+=Math.floor(Math.random()*16).toString(16);' +
     'document.getElementById("o").textContent=s.slice(0,8)+"-"+s.slice(8,12)+"-4"+s.slice(13,16)+"-a"+s.slice(17,20)+"-"+s.slice(20)});out(el)},' +
-    'about:function(el){var o=out(el);o.textContent="MiniOS Phone | 4 pages | use Prev/Next buttons | offline MiniBot"}' +
+    
+    'phone:function(el){var o=out(el);o.style.textAlign="center";o.style.fontSize="22px";o.textContent="";var d="";field(el,"Number","pn","tel","");btn(el,"Dial",function(){d=document.getElementById("pn").value;o.textContent="Calling "+d+"...";setTimeout(function(){o.textContent="Ended (sim)"},1200)})},' +
+    'msg:function(el){var list=[];try{list=JSON.parse(load("ph_msg","[]"))}catch(e){list=[]}function ren(){el.innerHTML="";field(el,"Message","mm","text","");btn(el,"Send",function(){var v=document.getElementById("mm").value.trim();if(!v)return;list.unshift({t:v,d:new Date().toLocaleTimeString()});if(list.length>20)list.pop();store("ph_msg",JSON.stringify(list));ren()});list.forEach(function(m){var d=document.createElement("div");d.className="out";d.textContent=m.d+" · "+m.t;el.appendChild(d)})}ren()},' +
+    'camera:function(el){var o=out(el);o.style.minHeight="120px";o.style.background="#111";o.style.textAlign="center";o.style.paddingTop="40px";o.textContent="Camera preview (sim)";btn(el,"Shutter",function(){o.textContent="Photo saved (sim) "+new Date().toLocaleTimeString()})},' +
+    'gallery:function(el){var n=+(load("ph_gal","3"))||3;function ren(){el.innerHTML="";var g=document.createElement("div");g.style.cssText="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px";for(var i=0;i<n;i++){var c=document.createElement("div");c.style.cssText="aspect-ratio:1;border-radius:8px;background:hsl("+(i*40)%360+" 40% 30%)";g.appendChild(c)}el.appendChild(g);btn(el,"Add",function(){n++;store("ph_gal",String(n));ren()})}ren()},' +
+    'browser:function(el){field(el,"URL","bu","text","https://example.com");var o=out(el);btn(el,"Go",function(){o.textContent="Opened "+document.getElementById("bu").value+" (offline shell)"})},' +
+    'maps:function(el){field(el,"Place","mp","text","Rahim Yar Khan");var o=out(el);btn(el,"Search",function(){o.textContent="Pin: "+document.getElementById("mp").value+"\\nApprox map (offline)"})},' +
+    'calendar:function(el){var o=out(el);var d=new Date();o.textContent=d.toDateString()+"\\n"+d.toLocaleTimeString();btn(el,"Today events",function(){o.textContent=d.toDateString()+"\\n· No events (local)"})},' +
+    'contacts:function(el){var list=[];try{list=JSON.parse(load("ph_ct","[]"))}catch(e){list=[]}function ren(){el.innerHTML="";field(el,"Name","cn","text","");btn(el,"Add",function(){var v=document.getElementById("cn").value.trim();if(!v)return;list.push(v);store("ph_ct",JSON.stringify(list));ren()});list.forEach(function(n){var d=document.createElement("div");d.className="out";d.textContent=n;el.appendChild(d)})}ren()},' +
+    'clock:function(el){var o=out(el);o.style.textAlign="center";o.style.fontSize="28px";function tick(){o.textContent=new Date().toLocaleTimeString()}tick();setInterval(tick,1000)},' +
+    'alarm:function(el){field(el,"HH:MM","al","text","07:00");var o=out(el);btn(el,"Set",function(){store("ph_alarm",document.getElementById("al").value);o.textContent="Alarm "+document.getElementById("al").value+" set (local)"})},' +
+    'weather:function(el){var o=out(el);o.textContent="Open .weather in chat for live data.\\nLocal: clear / warm (sim)";btn(el,"Refresh sim",function(){o.textContent="Sim "+(20+Math.floor(Math.random()*15))+"C · wind ok"})},' +
+    'music:function(el){var tracks=["Lo-fi beats","Morning drive","Focus piano","Night rain"];var i=0;var o=out(el);o.style.textAlign="center";function show(){o.textContent="Now: "+tracks[i]}show();btn(el,"Next",function(){i=(i+1)%tracks.length;show()});btn(el,"Prev",function(){i=(i+tracks.length-1)%tracks.length;show()})},' +
+    'files:function(el){var files=["Notes.txt","Photo_01.jpg","Invoice.pdf","Music/track.mp3"];function ren(){el.innerHTML="";files.forEach(function(f){var d=document.createElement("div");d.className="out";d.textContent=f;el.appendChild(d)})}ren()},' +
+    'settings:function(el){var dark=load("ph_dark","1")==="1";var o=out(el);function show(){o.textContent="Theme: "+(dark?"Dark":"Light")+"\\nVersion: Phone 2.0\\nStorage: local only"}show();btn(el,"Toggle theme",function(){dark=!dark;store("ph_dark",dark?"1":"0");show()})},' +
+    'compass:function(el){var o=out(el);o.style.textAlign="center";o.style.fontSize="22px";btn(el,"Bearing",function(){o.textContent=Math.floor(Math.random()*360)+" deg (sim)"})},' +
+    'record:function(el){var on=0,t0=0,iv;var o=out(el);o.style.textAlign="center";btn(el,"Rec / Stop",function(){if(!on){on=1;t0=Date.now();iv=setInterval(function(){o.textContent="REC "+((Date.now()-t0)/1000).toFixed(1)+"s"},100)}else{on=0;clearInterval(iv);o.textContent="Saved clip (sim)"}})},' +
+    'wallet:function(el){var bal=+(load("ph_bal","1000"))||1000;var o=out(el);function show(){o.textContent="Balance: "+bal}show();btn(el,"+100",function(){bal+=100;store("ph_bal",String(bal));show()});btn(el,"-50",function(){bal=Math.max(0,bal-50);store("ph_bal",String(bal));show()})},' +
+'about:function(el){var o=out(el);o.textContent="MiniOS Phone | 4 pages | use Prev/Next buttons | offline MiniBot"}' +
     '};' +
     '})();</script>'
   );

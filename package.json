@@ -1,6 +1,6 @@
 {
   "name": "whatsapp-minibot",
-  "version": "1.9.0",
+  "version": "2.0.0",
   "description": "WhatsApp bot with pairing site, plugin system, and in-chat HTML mini games",
   "main": "index.js",
   "type": "commonjs",
@@ -19,5 +19,20 @@
     "pino": "^9.6.0",
     "qrcode": "^1.5.4"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wized2/WhatsApp-MiniBot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wized2/WhatsApp-MiniBot/issues"
+  },
+  "homepage": "https://github.com/wized2/WhatsApp-MiniBot#readme",
+  "keywords": [
+    "whatsapp",
+    "baileys",
+    "bot",
+    "mini-apps",
+    "plugins"
+  ]
 }
