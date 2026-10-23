@@ -36,7 +36,7 @@ try {
   const { loadPlugins } = require('../lib/pluginLoader');
   const plugs = loadPlugins(path.join(__dirname, '..', 'plugins'));
   console.log('plugins loaded', plugs.length);
-  if (plugs.length < 5) throw new Error('too few plugins');
+  if (plugs.length < 3) throw new Error('too few plugins');
 } catch (e) {
   failed += 1;
   console.error('plugin load failed', e.message);

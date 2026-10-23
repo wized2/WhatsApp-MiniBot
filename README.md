@@ -1,157 +1,58 @@
-# WhatsApp MiniBot
+# WhatsApp Channel Forward
 
-Self-hosted WhatsApp multi-device bot with **in-chat mini-apps**, games, offline tools, and live API commands.
+Branch: `feature/channel-forward`
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](package.json)
+Baileys bot focused on **channel → group** auto-forward (no games / mini-apps).
 
-## Features
-
-- Pairing-code login (web UI on `PORT`)
-- Plugin system with hot-reload
-- **Phone** launcher (`.phone`) — dialer, messages, camera, gallery, maps, …
-- **Hub** offline toolkit (`.hub`) — 90+ tools
-- **Games** (`.games`) — 70+ button mini-games
-- **Live APIs** (`.api`, `.weather`, `.pray`, `.define`, …)
-- Native interactive **lists / quick-reply** menus when the client supports them
-- Anti-spam rate limits and send jitter
-
-## Quick start
+## Setup
 
 ```bash
-git clone https://github.com/wized2/WhatsApp-MiniBot.git
-cd WhatsApp-MiniBot
 npm install
-# edit config.js — ownerNumber / pairNumber
+# edit config.js — ownerNumber, pairNumber
 npm start
 ```
 
-Open `http://localhost:3000`, request a pairing code, enter it in WhatsApp → Linked devices.
+Open the pairing page (port from `config.port`), pair with WhatsApp.
 
-### KataBump one-file runner
+## Channel → group
 
-```bash
-node katabump.js
-```
-
-Config block is at the top of `katabump.js` (phone, port, auto-update interval).
-
-## Commands (common)
-
-| Command | Description |
-|---------|-------------|
-| `.menu` | Command overview |
-| `.phone` | Smartphone-style launcher |
-| `.hub` | Offline multi-tool hub |
-| `.utils` | Quick tools |
-| `.games` | Game list |
-| `.api` | Interactive API menu |
-| `.fun` | Fun API menu |
-| `.weather <city>` | Live weather |
-| `.pray <city>` | Prayer times |
-| `.rate USD PKR` | Exchange rate |
-| `.define <word>` | Dictionary |
-| `.tr en\|ur text` | Translate |
-| `.github user` / `user/repo` | GitHub info |
-| `.id` | Chat / group id |
-| `.send` / `.sendgame` | Owner relay |
-
-Prefix defaults to `.` (`config.prefix`).
-
-## Project layout
-
-```
-index.js          # socket + message router
-config.js         # bot settings
-katabump.js       # single-file deploy helper
-lib/              # transport, anti-ban, interactive, games
-plugins/          # commands (hot-reloaded)
-public/           # pairing site assets
-scripts/          # tests
-```
-
-## Configuration
-
-Edit `config.js`:
-
-| Key | Purpose |
-|-----|---------|
-| `ownerNumber` | Owner digits (country code, no +) |
-| `pairNumber` | Number used for pairing API |
-| `prefix` | Command prefix |
-| `port` | Pairing web UI port |
-
-Environment: `PORT`, `PUBLIC_URL`, `RICH_BOT_JID`, `HTML_BYPASS_DOWNLOAD`.
-
-## Development
-
-```bash
-npm test          # syntax + plugin load checks
-npm start
-```
-
-Add a plugin under `plugins/` exporting `{ pattern, handler }` or an array of commands.
-
-## Security & anti-ban
-
-- Per-chat command rate limit
-- Queued outbound messages with random delay
-- API cooldown keys
-- Group replies truncated when very long
-
-Unofficial clients can still risk account restrictions. Use a secondary number for experiments.
-
-## License
-
-MIT — see [LICENSE](LICENSE).
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-
-
-## Channel → group forward (`feature/channel-forward`)
-
-Auto-relay WhatsApp **Channel** posts into a **group**, with optional footer edit.
-
-### Get channel id from a post link
+### Channel id from post link
 
 ```text
 .cfwd resolve https://whatsapp.com/channel/XXXX/123
 ```
 
-Uses Baileys `newsletterMetadata('invite', code)` on the invite segment of the URL.
-
-Or add in one step:
+### Add rule + bold footer
 
 ```text
 .cfwd add https://whatsapp.com/channel/XXXX 120363…@g.us Dark News
 ```
 
-### Bold footer on a new line
+Forwarded text becomes:
 
-Extra args after group jid become a **footer** appended after the last line:
-
-```
+```text
 original channel text
 
 *Dark News*
 ```
 
-Change later:
-
-```text
-.cfwd footer <channelJid|link> Dark News
-```
-
-### Other
+### Commands (owner)
 
 | Command | Meaning |
 |---------|---------|
-| `.cfwd list` | List rules |
+| `.cfwd help` | Guide |
+| `.cfwd resolve <link>` | Channel `@newsletter` id |
+| `.cfwd add <link\|jid> <groupJid> [footer]` | Add rule |
+| `.cfwd footer <link\|jid> <text>` | Bold footer on new line |
+| `.cfwd list` | Rules |
 | `.cfwd remove <channel>` | Remove |
 | `.cfwd log on\|off` | Log channel jids |
 | `.cfwd last` | Last seen channel jid |
+| `.id` | Chat / group id |
+| `.send <jid> <text>` | Owner send |
 
-Rules: `data/channel-forwards.json`.
+Rules file: `data/channel-forwards.json`.
+
+## Note
+
+Unofficial WhatsApp automation can risk the number. Keep volume low; only relay channels you’re allowed to share.
