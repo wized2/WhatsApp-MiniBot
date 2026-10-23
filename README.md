@@ -108,3 +108,30 @@ MIT — see [LICENSE](LICENSE).
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+
+## Channel → group forward (`feature/channel-forward`)
+
+Auto-relay WhatsApp **Channel** posts into a **group**, with optional text prefix/edit.
+
+### Get a channel id (channel is not yours)
+
+1. Follow the channel on the **same number** the bot is paired with.
+2. Owner chat: `.cfwd log on`
+3. When the channel posts, server logs show `120363…@newsletter`.
+4. Or after a post: `.cfwd last`
+
+Group id: run `.id` inside the target group (`…@g.us`).
+
+### Commands (owner only)
+
+| Command | Meaning |
+|---------|---------|
+| `.cfwd help` | Help |
+| `.cfwd list` | List rules |
+| `.cfwd add <channelJid> <groupJid> [prefix]` | Add rule |
+| `.cfwd remove <channelJid>` | Remove rules for that channel |
+| `.cfwd log on\|off` | Log channel jids |
+| `.cfwd last` | Last seen channel jid |
+
+Rules are stored in `data/channel-forwards.json`.

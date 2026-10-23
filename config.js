@@ -13,4 +13,9 @@ module.exports = {
   richBotJid: process.env.RICH_BOT_JID || '867051314767696@bot',
   // MESSAGE_EDIT after rich card (helps stock Android WhatsApp)
   htmlBypassDownload: process.env.HTML_BYPASS_DOWNLOAD !== '0',
+  // Log channel jids when a newsletter message arrives (also .cfwd log on)
+  channelForwardLog: process.env.CFWD_LOG === '1',
+  // Optional static rules; runtime rules live in data/channel-forwards.json
+  // channelForwards: [{ from: 'xxx@newsletter', to: 'yyy@g.us', prefix: '📢 ' }],
 };
+

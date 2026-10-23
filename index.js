@@ -8,6 +8,8 @@ const { startPairServer } = require('./lib/pairServer');
 const msgStore = require('./lib/msgStore');
 const antiBan = require('./lib/antiBan');
 const { consumeSession, peekSession } = require('./lib/interactive');
+const channelForward = require('./lib/channelForward');
+const channelForwardPlugin = require('./plugins/channel-forward');
 
 const {
   default: makeWASocket,
@@ -258,6 +260,23 @@ async function startBot() {
         // Chat JID (DM or group). Public — anyone can run commands.
         const jid = m.key.remoteJid;
         if (!jid) continue;
+
+        // Channel → group auto-forward (before text filter; media-only posts)
+        if (channelForward.isChannelJid(jid)) {
+          if (typeof channelForwardPlugin.noteChannel === 'function') {
+            channelForwardPlugin.noteChannel(jid);
+          }
+          if (config.channelForwardLog) {
+            console.log('[cfwd] channel message from', jid);
+          }
+          try {
+            await channelForward.processMessage(sock, m, config);
+          } catch (e) {
+            console.error('[cfwd]', e.message || e);
+          }
+          // Channels are not command chats
+          continue;
+        }
 
         const text = extractText(m.message).trim();
         if (!text) continue;
