@@ -56,8 +56,12 @@ module.exports = [
     category: 'owner',
     async handler(ctx) {
       const { arg, args, reply, sender, config, sock } = ctx;
-      if (!isOwner(sender, config)) {
-        await reply('Owner only.');
+      if (!isOwner(ctx)) {
+        await reply(
+          'Owner only.\nYour sender: `' +
+            String(sender || '') +
+            '`\nSet ownerNumber in config to your phone (e.g. 92307…).'
+        );
         return;
       }
       const sub = (args[0] || '').toLowerCase();

@@ -313,7 +313,15 @@ async function startBot() {
         const text = extractText(m.message).trim();
         if (!text) continue;
 
-        const sender = m.key.participant || m.participant || jid;
+        // Groups: prefer PN if Baileys provides it; fall back to participant / LID
+        const sender =
+          m.key.participantPn ||
+          m.key.senderPn ||
+          m.key.participant ||
+          m.participant ||
+          m.key.participantLid ||
+          m.key.senderLid ||
+          jid;
         console.log(
           '[msg]',
           type,
