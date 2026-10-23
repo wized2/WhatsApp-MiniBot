@@ -138,10 +138,42 @@ async function startBot() {
   state.message = state.registered ? 'Session found — connecting…' : 'Waiting for WhatsApp handshake…';
   state.updatedAt = Date.now();
 
+  state.clearSessionAndRestart = async () => {
+    console.log('[pair] clearSessionAndRestart');
+    clearSessionFiles();
+    state.connected = false;
+    state.registered = false;
+    state.pairingCode = null;
+    state.lastQrDataUrl = null;
+    state.user = null;
+    state.socketReady = false;
+    state.message = 'Session cleared — reconnecting for a fresh code…';
+    state.updatedAt = Date.now();
+    try {
+      if (sockRef) {
+        try { sockRef.ev.removeAllListeners('connection.update'); } catch (_) {}
+        try { sockRef.end(undefined); } catch (_) {}
+      }
+    } catch (_) {}
+    sockRef = null;
+    setTimeout(() => {
+      startBot().catch((e) => console.error('[pair] restart after clear', e));
+    }, 800);
+  };
+
   state.requestPairingCode = async (rawNumber) => {
     if (!sockRef) throw new Error('Socket not ready');
-    if (sockRef.authState.creds.registered) {
-      throw new Error('Already linked. Delete the session/ folder and restart to re-pair.');
+    // Stale session: marked registered but never reached connection open
+    if (sockRef.authState.creds.registered && !state.connected) {
+      console.warn('[pair] stale registered session — clearing');
+      clearSessionFiles();
+      state.registered = false;
+      throw new Error(
+        'Found a half-linked session and cleared files. Wait ~5 seconds for reconnect (status Ready), then tap Get code again.'
+      );
+    }
+    if (sockRef.authState.creds.registered && state.connected) {
+      throw new Error('Already linked. Tap Clear session to re-pair.');
     }
 
     const number = normalizePhone(rawNumber);

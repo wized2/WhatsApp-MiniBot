@@ -4,17 +4,17 @@ async function refresh() {
   try {
     const r = await fetch('/api/status');
     const d = await r.json();
-    $('botName').textContent = d.botName || 'MiniBot';
+    $('botName').textContent = d.botName || 'ChannelFwd';
     if (!$('number').value && d.pairNumber) $('number').value = d.pairNumber;
 
     const dot = $('dot');
     const st = $('statusText');
     if (d.connected) {
       dot.className = 'dot ok';
-      st.textContent = 'Connected' + (d.user?.id ? ' · ' + d.user.id : '');
+      st.textContent = 'Connected' + (d.user && d.user.id ? ' · ' + d.user.id : '');
     } else if (d.socketReady) {
       dot.className = 'dot wait';
-      st.textContent = d.message || 'Ready to pair';
+      st.textContent = d.message || 'Ready — enter number and Get code';
     } else if (d.lastError) {
       dot.className = 'dot bad';
       st.textContent = d.message || d.lastError;
@@ -36,9 +36,10 @@ async function refresh() {
       $('codeText').textContent = d.pairingCode;
     }
 
+    // Enable Get code whenever not live-connected and socket ready
     $('btnCode').disabled = !!(d.connected || !d.socketReady);
   } catch (e) {
-    $('statusText').textContent = 'Panel offline';
+    $('statusText').textContent = 'API offline';
     $('dot').className = 'dot bad';
   }
 }
@@ -76,6 +77,24 @@ $('btnCopy').onclick = async () => {
     alert(t);
   }
 };
+
+if ($('btnClear')) {
+  $('btnClear').onclick = async () => {
+    if (!confirm('Clear session and re-pair?')) return;
+    $('statusText').textContent = 'Clearing session…';
+    try {
+      const r = await fetch('/api/clear-session', { method: 'POST' });
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error || 'Failed');
+      $('codeBox').hidden = true;
+      alert(d.message || 'Cleared. Wait for Ready, then Get code.');
+    } catch (e) {
+      alert(e.message || String(e));
+    } finally {
+      setTimeout(refresh, 1500);
+    }
+  };
+}
 
 refresh();
 setInterval(refresh, 2000);
