@@ -6,7 +6,8 @@ module.exports = {
   port: Number(process.env.PORT) || 3000,
   host: '0.0.0.0',
   pairNumber: '923073477752',
-  sessionDir: './session',
+  // Prefer process.env.SESSION_DIR (katabump sets a path outside the git clone)
+  sessionDir: process.env.SESSION_DIR || './session',
   publicUrl: process.env.PUBLIC_URL || '',
   themeColor: '#25D366',
   tagline: 'Channel → group forward',

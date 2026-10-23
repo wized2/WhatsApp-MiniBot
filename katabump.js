@@ -18,6 +18,8 @@ const CONFIG = {
   branch: process.env.BRANCH || 'feature/channel-forward',
   updateEveryMin: Number(process.env.UPDATE_EVERY_MIN || 5),
   dirName: process.env.BOT_DIR || 'WhatsApp-ChannelFwd-run',
+  // Persist auth + forward rules outside git clone (survives pull/reset)
+  dataDir: process.env.DATA_DIR || 'WhatsApp-ChannelFwd-data',
 };
 // ───────────────────────────────────────────────────
 
@@ -30,6 +32,9 @@ const PHONE = String(CONFIG.phone).replace(/\D/g, '');
 const PORT = CONFIG.port;
 const BRANCH = String(CONFIG.branch);
 const REPO = String(CONFIG.repoUrl);
+const DATA_ROOT = path.join(process.env.RUN_ROOT || '/tmp', CONFIG.dataDir || 'WhatsApp-ChannelFwd-data');
+const SESSION_DIR = path.join(DATA_ROOT, 'session');
+const RULES_DIR = path.join(DATA_ROOT, 'data');
 
 function log() {
   var a = Array.prototype.slice.call(arguments);
@@ -89,6 +94,44 @@ function ensureRepo() {
     log('npm install...');
     sh('npm install --omit=dev', { cwd: ROOT });
   }
+
+  // Persistent session + rules (outside clone so git reset cannot wipe them)
+  try {
+    fs.mkdirSync(SESSION_DIR, { recursive: true });
+    fs.mkdirSync(RULES_DIR, { recursive: true });
+    var rulesSrc = path.join(ROOT, 'data');
+    var rulesFile = path.join(RULES_DIR, 'channel-forwards.json');
+    if (!fs.existsSync(rulesFile)) {
+      fs.writeFileSync(rulesFile, '[]\n');
+    }
+    // Point app data/ at persistent store
+    try {
+      var link = path.join(ROOT, 'data');
+      if (fs.existsSync(link) && !fs.lstatSync(link).isSymbolicLink()) {
+        // merge one-way: copy missing file then replace with symlink
+        var localRules = path.join(link, 'channel-forwards.json');
+        if (fs.existsSync(localRules) && !fs.existsSync(rulesFile)) {
+          fs.copyFileSync(localRules, rulesFile);
+        }
+        fs.rmSync(link, { recursive: true, force: true });
+      }
+      if (!fs.existsSync(path.join(ROOT, 'data'))) {
+        fs.symlinkSync(RULES_DIR, path.join(ROOT, 'data'), 'junction');
+      }
+    } catch (e) {
+      // symlink may fail on some hosts — copy file each start instead
+      try {
+        fs.mkdirSync(path.join(ROOT, 'data'), { recursive: true });
+        fs.copyFileSync(rulesFile, path.join(ROOT, 'data', 'channel-forwards.json'));
+      } catch (e2) {
+        log('rules persist', e.message || e, e2.message || '');
+      }
+    }
+    log('session dir', SESSION_DIR);
+  } catch (e) {
+    log('persist setup', e.message);
+  }
+
 }
 
 function gitHead() {
@@ -139,6 +182,7 @@ function startBot() {
       PHONE: PHONE,
       OWNER: PHONE,
       PAIR_NUMBER: PHONE,
+      SESSION_DIR: SESSION_DIR,
     }),
     stdio: 'inherit',
   });

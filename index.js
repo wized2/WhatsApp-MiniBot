@@ -20,7 +20,8 @@ const {
   Browsers,
 } = require('baileys');
 
-const sessionDir = path.resolve(config.sessionDir);
+const sessionDir = path.resolve(process.env.SESSION_DIR || config.sessionDir || './session');
+console.log('[session] dir', sessionDir);
 if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
 let plugins = loadPlugins(path.join(__dirname, 'plugins'));
@@ -163,17 +164,15 @@ async function startBot() {
 
   state.requestPairingCode = async (rawNumber) => {
     if (!sockRef) throw new Error('Socket not ready');
-    // Stale session: marked registered but never reached connection open
-    if (sockRef.authState.creds.registered && !state.connected) {
-      console.warn('[pair] stale registered session — clearing');
-      clearSessionFiles();
-      state.registered = false;
+    // Keep saved session across restarts. Only Clear session wipes it.
+    if (sockRef.authState.creds.registered) {
+      if (state.connected) {
+        throw new Error('Already linked. Tap Clear session only if you want to re-pair.');
+      }
       throw new Error(
-        'Found a half-linked session and cleared files. Wait ~5 seconds for reconnect (status Ready), then tap Get code again.'
+        'A saved session exists and is reconnecting. Wait until status is Connected. ' +
+          'Only tap Clear session if pairing is truly lost.'
       );
-    }
-    if (sockRef.authState.creds.registered && state.connected) {
-      throw new Error('Already linked. Tap Clear session to re-pair.');
     }
 
     const number = normalizePhone(rawNumber);
@@ -242,10 +241,19 @@ async function startBot() {
       state.user = sock.user || null;
       state.pairingCode = null;
       state.lastQrDataUrl = null;
-      state.message = 'Connected';
+      state.message = 'Connected (session saved — survives restart)';
       state.lastError = null;
       state.updatedAt = Date.now();
-      console.log('[bot] connected as', sock.user?.id || '?');
+      console.log('[bot] connected as', sock.user?.id || '?', 'session=', sessionDir);
+      // creds already persist via creds.update; touch marker for operators
+      try {
+        fs.writeFileSync(
+          path.join(sessionDir, '.connected'),
+          new Date().toISOString() + ' ' + (sock.user?.id || '') + '\n'
+        );
+      } catch (e) {
+        console.warn('[session] marker', e.message);
+      }
     }
 
     if (connection === 'close') {

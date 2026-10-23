@@ -10,23 +10,34 @@ const { isOwner } = require('../lib/owner');
 
 function usage() {
   return (
-    `*Channel forward*\n` +
-    `Relay channel posts → a group. Optional edit: footer on last line.\n\n` +
-    `*Get channel id from a post link*\n` +
-    `· \`.cfwd resolve https://whatsapp.com/channel/XXXX/123\`\n` +
-    `· Or paste the link in \`.cfwd add <link> <groupJid>\`\n\n` +
-    `Also: follow channel → \`.cfwd log on\` / \`.cfwd last\`\n\n` +
-    `*Commands (owner)*\n` +
-    `· \`.cfwd list\`\n` +
-    `· \`.cfwd resolve <channel-link>\`\n` +
-    `· \`.cfwd add <channelJid|link> <groupJid> [footer…]\`\n` +
-    `· \`.cfwd footer <channelJid> <text…>\` — set bold footer (new line)\n` +
-    `· \`.cfwd remove <channelJid>\`\n` +
-    `· \`.cfwd log on|off\` · \`.cfwd last\` · \`.cfwd help\`\n\n` +
-    `Footer example (bold *Dark News* after content):\n` +
-    `\`.cfwd add <link> <group> Dark News\`\n` +
-    `Sends:\n` +
-    `original text\n\n*Dark News*`
+    `*Channel forward*
+` +
+    `Relay channel posts → group. Strip emoji / channel name. Footer optional.
+
+` +
+    `*Setup*
+` +
+    `· \`.cfwd resolve <channel-link>\`
+` +
+    `· \`.cfwd add <link|jid> <groupJid> [footer]\`
+` +
+    `· \`.cfwd footer <link|jid> <text>\`
+
+` +
+    `*Strip (per channel)*
+` +
+    `· \`.cfwd strip emoji <jid|link> on|off\`
+` +
+    `· \`.cfwd strip name <jid|link> PAKISTAN EXPRESS LIVE\`
+` +
+    `· \`.cfwd strip add <jid|link> <phrase>\` — drop lines containing phrase
+` +
+    `· \`.cfwd strip rm <jid|link> <phrase>\`
+` +
+    `· \`.cfwd strip list <jid|link>\`
+
+` +
+    `· \`.cfwd list\` · \`.cfwd remove\` · \`.cfwd last\``
   );
 }
 
@@ -158,6 +169,100 @@ module.exports = [
         }
         return;
       }
+
+      if (sub === 'strip') {
+        const action = (args[1] || '').toLowerCase();
+        const targetTok = args[2];
+        if (!action || action === 'help') {
+          await reply(
+            '*Strip help*\n' +
+              '`.cfwd strip emoji <channel> on|off`\n' +
+              '`.cfwd strip name <channel> CHANNEL NAME HERE`\n' +
+              '`.cfwd strip add <channel> phrase to remove`\n' +
+              '`.cfwd strip rm <channel> phrase`\n' +
+              '`.cfwd strip list <channel>`\n\n' +
+              'Phrases remove *whole lines* that contain them (e.g. channel brand).'
+          );
+          return;
+        }
+        if (!targetTok && action !== 'help') {
+          await reply('Usage: `.cfwd strip <emoji|name|add|rm|list> <channelJid|link> …`');
+          return;
+        }
+        try {
+          const resolved = await resolveFromArg(sock, targetTok);
+          if (!resolved?.jid) {
+            await reply('Need channel jid or whatsapp.com/channel/… link');
+            return;
+          }
+          const from = resolved.jid;
+          const rules = loadRules();
+          const matched = rules.filter((r) => r.from === from);
+          if (!matched.length) {
+            await reply('No rule for that channel. `.cfwd add` first.');
+            return;
+          }
+          if (action === 'list') {
+            const r0 = matched[0];
+            const phrases = [].concat(r0.stripPhrases || []).concat(r0.stripNames || []);
+            if (r0.channelName) phrases.push(r0.channelName);
+            await reply(
+              `Strip for \`${from}\`\n` +
+                `emoji: ${r0.stripEmojis ? 'on' : 'off'}\n` +
+                `phrases/lines:\n` +
+                (phrases.length ? phrases.map((x) => '· ' + x).join('\n') : '(none)')
+            );
+            return;
+          }
+          if (action === 'emoji') {
+            const on = String(args[3] || '').toLowerCase();
+            const val = on === 'on' || on === '1' || on === 'true';
+            for (const r of matched) r.stripEmojis = val;
+            saveRules(rules);
+            await reply(`Emoji strip ${val ? 'ON' : 'OFF'} for \`${from}\``);
+            return;
+          }
+          if (action === 'name' || action === 'add') {
+            const phrase = args.slice(3).join(' ').trim();
+            if (!phrase) {
+              await reply('Usage: `.cfwd strip name <channel> PAKISTAN EXPRESS LIVE`');
+              return;
+            }
+            for (const r of matched) {
+              if (!Array.isArray(r.stripPhrases)) r.stripPhrases = [];
+              if (!r.stripPhrases.some((x) => String(x).toLowerCase() === phrase.toLowerCase())) {
+                r.stripPhrases.push(phrase);
+              }
+              r.stripLines = true;
+              if (action === 'name') r.channelName = phrase;
+            }
+            saveRules(rules);
+            await reply(`Will drop lines containing:\n${phrase}\n\n(channel \`${from}\`)`);
+            return;
+          }
+          if (action === 'rm' || action === 'remove' || action === 'del') {
+            const phrase = args.slice(3).join(' ').trim();
+            if (!phrase) {
+              await reply('Usage: `.cfwd strip rm <channel> phrase`');
+              return;
+            }
+            for (const r of matched) {
+              const low = phrase.toLowerCase();
+              r.stripPhrases = (r.stripPhrases || []).filter((x) => String(x).toLowerCase() !== low);
+              r.stripNames = (r.stripNames || []).filter((x) => String(x).toLowerCase() !== low);
+              if (r.channelName && String(r.channelName).toLowerCase() === low) delete r.channelName;
+            }
+            saveRules(rules);
+            await reply(`Removed strip phrase: ${phrase}`);
+            return;
+          }
+          await reply('Unknown strip action. `.cfwd strip help`');
+        } catch (e) {
+          await reply('Strip failed: ' + (e.message || e));
+        }
+        return;
+      }
+
       if (sub === 'add') {
         const fromTok = args[1];
         const to = args[2];
