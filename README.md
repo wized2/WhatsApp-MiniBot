@@ -56,3 +56,14 @@ Rules file: `data/channel-forwards.json`.
 ## Note
 
 Unofficial WhatsApp automation can risk the number. Keep volume low; only relay channels you’re allowed to share.
+
+
+## KataBump / VPS one-file runner
+
+```bash
+# copy katabump.js to the server, edit phone/port if needed
+node katabump.js
+```
+
+Defaults: branch `feature/channel-forward`, port `20299`, phone from `CONFIG.phone`.
+Env overrides: `PHONE`, `PORT`, `BRANCH`, `REPO_URL`, `BOT_DIR`, `UPDATE_EVERY_MIN`.

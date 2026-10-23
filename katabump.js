@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 /**
- * MiniBot — KataBump / VPS single-file runner
- * ============================================
+ * Channel Forward — KataBump / VPS single-file runner
+ * ====================================================
+ * Branch: feature/channel-forward (channel → group only)
+ *
  * Edit CONFIG below (or set env vars). Then:
  *   node katabump.js
  *
  * - Uses phone for BOTH owner + pairing
- * - Auto git-pull from GitHub every 5 minutes; restarts on code change
+ * - Clones / pulls feature/channel-forward by default
+ * - Auto git-pull every 5 minutes; restarts on code change
  * - Binds 0.0.0.0 + PORT for hosting panels
  */
 
@@ -18,15 +21,15 @@ const CONFIG = {
   // HTTP port for pair site / health
   port: Number(process.env.PORT) || 20299,
 
-  // GitHub repo to auto-update from (empty = disable auto-update)
+  // GitHub repo + branch (channel-forward = no games)
   repoUrl: process.env.REPO_URL || 'https://github.com/wized2/WhatsApp-MiniBot.git',
-  branch: process.env.BRANCH || 'main',
+  branch: process.env.BRANCH || 'feature/channel-forward',
 
   // Check for updates every N minutes
   updateEveryMin: Number(process.env.UPDATE_EVERY_MIN || 5),
 
-  // Working directory name under /tmp (or cwd)
-  dirName: process.env.BOT_DIR || 'WhatsApp-MiniBot-run',
+  // Working directory under /tmp (or RUN_ROOT)
+  dirName: process.env.BOT_DIR || 'WhatsApp-ChannelFwd-run',
 };
 // ───────────────────────────────────────────────────
 
@@ -52,13 +55,27 @@ function sh(cmd, opts = {}) {
 }
 
 function ensureRepo() {
-  if (!fs.existsSync(path.join(ROOT, 'package.json'))) {
-    log('cloning', CONFIG.repoUrl);
+  const pkg = path.join(ROOT, 'package.json');
+  if (!fs.existsSync(pkg)) {
+    log('cloning', CONFIG.repoUrl, '@', CONFIG.branch);
     fs.mkdirSync(path.dirname(ROOT), { recursive: true });
     if (fs.existsSync(ROOT)) fs.rmSync(ROOT, { recursive: true, force: true });
-    sh(`git clone --depth 1 -b ${CONFIG.branch} "${CONFIG.repoUrl}" "${ROOT}"`, {
-      cwd: path.dirname(ROOT),
-    });
+    sh(
+      `git clone --depth 1 -b ${CONFIG.branch} "${CONFIG.repoUrl}" "${ROOT}"`,
+      { cwd: path.dirname(ROOT) }
+    );
+  } else {
+    // Ensure we track the configured branch (e.g. switched from main → channel-forward)
+    try {
+      const cur = sh('git rev-parse --abbrev-ref HEAD', { silent: true }).trim();
+      if (cur !== CONFIG.branch) {
+        log('switching branch', cur, '→', CONFIG.branch);
+        sh('git fetch --depth 1 origin ' + CONFIG.branch, { silent: true });
+        sh('git checkout -B ' + CONFIG.branch + ' origin/' + CONFIG.branch, { silent: true });
+      }
+    } catch (e) {
+      log('branch ensure', e.message);
+    }
   }
   // Patch config.js phone/port without destroying other keys
   const cfgPath = path.join(ROOT, 'config.js');
@@ -66,7 +83,10 @@ function ensureRepo() {
     let t = fs.readFileSync(cfgPath, 'utf8');
     t = t.replace(/ownerNumber:\s*['"][^'"]*['"]/, `ownerNumber: '${PHONE}'`);
     t = t.replace(/pairNumber:\s*['"][^'"]*['"]/, `pairNumber: '${PHONE}'`);
-    t = t.replace(/port:\s*Number\(process\.env\.PORT\)\s*\|\|\s*\d+/, `port: Number(process.env.PORT) || ${PORT}`);
+    t = t.replace(
+      /port:\s*Number\(process\.env\.PORT\)\s*\|\|\s*\d+/,
+      `port: Number(process.env.PORT) || ${PORT}`
+    );
     fs.writeFileSync(cfgPath, t);
   }
   if (!fs.existsSync(path.join(ROOT, 'node_modules', 'baileys'))) {
@@ -115,7 +135,7 @@ function startBot() {
     } catch (_) {}
     child = null;
   }
-  log('starting bot · phone', PHONE, '· port', PORT);
+  log('starting channel-forward · phone', PHONE, '· port', PORT, '· branch', CONFIG.branch);
   child = spawn('node', ['index.js'], {
     cwd: ROOT,
     env: {
@@ -137,7 +157,7 @@ function startBot() {
 }
 
 function main() {
-  log('MiniBot runner · auto-update every', CONFIG.updateEveryMin, 'min');
+  log('ChannelFwd runner · branch', CONFIG.branch, '· update every', CONFIG.updateEveryMin, 'min');
   ensureRepo();
   pullIfChanged();
   startBot();
