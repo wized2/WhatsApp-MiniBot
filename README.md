@@ -67,3 +67,16 @@ node katabump.js
 
 Defaults: branch `feature/channel-forward`, port `20299`, phone from `CONFIG.phone`.
 Env overrides: `PHONE`, `PORT`, `BRANCH`, `REPO_URL`, `BOT_DIR`, `UPDATE_EVERY_MIN`.
+
+## Host layout (KataBump)
+
+Runner lives at host root; bot code is isolated in `bot/`.
+
+```
+./index.js          # katabump runner
+./forwards.json     # BACK UP — all channel rules, strips, footers
+./session/          # WhatsApp login (do not delete)
+./bot/              # app code (auto-updated from git)
+```
+
+Safe updates only refresh `./bot`. `forwards.json` and `session/` are never deleted by the runner.

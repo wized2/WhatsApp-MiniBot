@@ -284,39 +284,43 @@ async function startBot() {
     }
   });
 
+  // Log where rules live (root forwards.json when set)
+  try {
+    console.log('[cfwd] rules file', channelForward.storePath());
+  } catch (_) {}
+
   sock.ev.on('messages.upsert', async (upsert) => {
     const { messages, type } = upsert;
-    // Baileys may deliver as notify OR append depending on sync path
-    if (type !== 'notify' && type !== 'append') return;
+    // Process every delivery type for channel JIDs (notify/append/other).
+    // Non-channel still limited to notify|append to avoid noise.
+    if (!Array.isArray(messages) || !messages.length) return;
 
     for (const m of messages) {
       try {
-        if (!m.message) continue;
+        if (!m || !m.message) continue;
         msgStore.put(m);
-        if (m.key.remoteJid === 'status@broadcast') continue;
+        if (m.key?.remoteJid === 'status@broadcast') continue;
         if (m.message.protocolMessage) continue;
         if (m.message.reactionMessage) continue;
 
-        // Chat JID (DM or group). Public — anyone can run commands.
-        const jid = m.key.remoteJid;
+        const jid = m.key?.remoteJid;
         if (!jid) continue;
 
-        // Channel → group auto-forward (before text filter; media-only posts)
+        // Channel → group auto-forward (all upsert types)
         if (channelForward.isChannelJid(jid)) {
           if (typeof channelForwardPlugin.noteChannel === 'function') {
             channelForwardPlugin.noteChannel(jid);
           }
-          if (config.channelForwardLog) {
-            console.log('[cfwd] channel message from', jid);
-          }
+          console.log('[cfwd] channel upsert type=', type, 'from', jid, 'id=', m.key?.id);
           try {
             await channelForward.processMessage(sock, m, config);
           } catch (e) {
             console.error('[cfwd]', e.message || e);
           }
-          // Channels are not command chats
           continue;
         }
+
+        if (type !== 'notify' && type !== 'append') continue;
 
         const text = extractText(m.message).trim();
         if (!text) continue;
