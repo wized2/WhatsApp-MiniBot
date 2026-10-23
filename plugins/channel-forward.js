@@ -2,29 +2,34 @@ const {
   loadRules,
   saveRules,
   isChannelJid,
+  parseChannelLink,
+  resolveChannelFromLink,
+  toBoldLine,
 } = require('../lib/channelForward');
 const { isOwner } = require('../lib/owner');
 
 function usage() {
   return (
     `*Channel forward*\n` +
-    `Relay channel posts → a group (edit optional).\n\n` +
-    `How to get a channel id (you cannot post there):\n` +
-    `1. Follow the channel on the bot number\n` +
-    `2. \`.cfwd log on\` — next posts print the id in server logs\n` +
-    `3. Or \`.cfwd last\` after a channel post arrives\n\n` +
-    `Commands (owner):\n` +
-    `• \`.cfwd list\`\n` +
-    `• \`.cfwd add <channelJid> <groupJid> [prefix]\`\n` +
-    `• \`.cfwd remove <channelJid>\`\n` +
-    `• \`.cfwd log on|off\`\n` +
-    `• \`.cfwd last\` — last seen channel jid\n` +
-    `• \`.cfwd help\`\n\n` +
-    `Group id: run \`.id\` inside the target group.`
+    `Relay channel posts → a group. Optional edit: footer on last line.\n\n` +
+    `*Get channel id from a post link*\n` +
+    `· \`.cfwd resolve https://whatsapp.com/channel/XXXX/123\`\n` +
+    `· Or paste the link in \`.cfwd add <link> <groupJid>\`\n\n` +
+    `Also: follow channel → \`.cfwd log on\` / \`.cfwd last\`\n\n` +
+    `*Commands (owner)*\n` +
+    `· \`.cfwd list\`\n` +
+    `· \`.cfwd resolve <channel-link>\`\n` +
+    `· \`.cfwd add <channelJid|link> <groupJid> [footer…]\`\n` +
+    `· \`.cfwd footer <channelJid> <text…>\` — set bold footer (new line)\n` +
+    `· \`.cfwd remove <channelJid>\`\n` +
+    `· \`.cfwd log on|off\` · \`.cfwd last\` · \`.cfwd help\`\n\n` +
+    `Footer example (bold *Dark News* after content):\n` +
+    `\`.cfwd add <link> <group> Dark News\`\n` +
+    `Sends:\n` +
+    `original text\n\n*Dark News*`
   );
 }
 
-// Module-level last seen channel (also set from index)
 const seen = { lastChannelJid: null, lastAt: 0 };
 
 function noteChannel(jid) {
@@ -32,6 +37,14 @@ function noteChannel(jid) {
     seen.lastChannelJid = jid;
     seen.lastAt = Date.now();
   }
+}
+
+async function resolveFromArg(sock, token) {
+  if (isChannelJid(token)) return { jid: token, name: null };
+  if (parseChannelLink(token) || /^[A-Za-z0-9_-]{10,}$/.test(token)) {
+    return resolveChannelFromLink(sock, token);
+  }
+  return null;
 }
 
 module.exports = [
@@ -42,7 +55,7 @@ module.exports = [
     desc: 'Channel → group auto-forward (owner)',
     category: 'owner',
     async handler(ctx) {
-      const { arg, args, reply, sender, config } = ctx;
+      const { arg, args, reply, sender, config, sock } = ctx;
       if (!isOwner(sender, config)) {
         await reply('Owner only.');
         return;
@@ -58,11 +71,34 @@ module.exports = [
           await reply('No forward rules. Use `.cfwd add …`');
           return;
         }
-        const lines = rules.map(
-          (r, i) =>
-            `${i + 1}. \`${r.from}\`\n   → \`${r.to}\`${r.prefix ? `\n   prefix: ${r.prefix}` : ''}${r.enabled === false ? ' (disabled)' : ''}`
-        );
+        const lines = rules.map((r, i) => {
+          let s = `${i + 1}. \`${r.from}\`\n   → \`${r.to}\``;
+          if (r.footer) s += `\n   footer: ${toBoldLine(r.footer)}`;
+          if (r.prefix) s += `\n   prefix: ${r.prefix}`;
+          if (r.enabled === false) s += ' (disabled)';
+          return s;
+        });
         await reply('*Forward rules*\n' + lines.join('\n'));
+        return;
+      }
+      if (sub === 'resolve' || sub === 'id' || sub === 'link') {
+        const link = args.slice(1).join(' ').trim() || arg.replace(/^(resolve|id|link)\s+/i, '').trim();
+        if (!link) {
+          await reply('Usage: `.cfwd resolve https://whatsapp.com/channel/XXXX`');
+          return;
+        }
+        try {
+          const r = await resolveChannelFromLink(sock, link);
+          noteChannel(r.jid);
+          let text = `Channel id:\n\`${r.jid}\``;
+          if (r.name) text += `\nName: ${r.name}`;
+          if (r.inviteCode) text += `\nInvite: \`${r.inviteCode}\``;
+          if (r.postId) text += `\nPost id: ${r.postId}`;
+          text += `\n\nAdd:\n.cfwd add ${r.jid} <groupJid> Dark News`;
+          await reply(text);
+        } catch (e) {
+          await reply('Resolve failed: ' + (e.message || e));
+        }
         return;
       }
       if (sub === 'log') {
@@ -77,7 +113,7 @@ module.exports = [
       }
       if (sub === 'last') {
         if (!seen.lastChannelJid) {
-          await reply('No channel message seen yet. Follow the channel, wait for a post, try again.');
+          await reply('No channel message seen yet. Follow the channel, wait for a post, or `.cfwd resolve <link>`.');
           return;
         }
         await reply(
@@ -85,44 +121,97 @@ module.exports = [
         );
         return;
       }
-      if (sub === 'add') {
-        const from = args[1];
-        const to = args[2];
-        const prefix = args.slice(3).join(' ') || '';
-        if (!from || !to) {
-          await reply('Usage: `.cfwd add <channelJid> <groupJid> [prefix]`');
+      if (sub === 'footer' || sub === 'brand') {
+        const fromTok = args[1];
+        const footer = args.slice(2).join(' ').trim();
+        if (!fromTok || !footer) {
+          await reply('Usage: `.cfwd footer <channelJid|link> Dark News`');
           return;
         }
-        if (!isChannelJid(from)) {
-          await reply('Channel jid should end with `@newsletter`');
+        try {
+          const resolved = await resolveFromArg(sock, fromTok);
+          if (!resolved?.jid) {
+            await reply('Need a channel jid or whatsapp.com/channel/… link');
+            return;
+          }
+          const rules = loadRules();
+          let n = 0;
+          for (const r of rules) {
+            if (r.from === resolved.jid) {
+              r.footer = footer;
+              r.footerBold = true;
+              n += 1;
+            }
+          }
+          if (!n) {
+            await reply('No rule for that channel. Add one first with `.cfwd add`.');
+            return;
+          }
+          saveRules(rules);
+          await reply(`Footer set for \`${resolved.jid}\`:\n\n${toBoldLine(footer)}`);
+        } catch (e) {
+          await reply('Failed: ' + (e.message || e));
+        }
+        return;
+      }
+      if (sub === 'add') {
+        const fromTok = args[1];
+        const to = args[2];
+        const footer = args.slice(3).join(' ').trim();
+        if (!fromTok || !to) {
+          await reply(
+            'Usage:\n`.cfwd add <channelJid|link> <groupJid> [footer]`\n\n' +
+              'Example:\n`.cfwd add https://whatsapp.com/channel/XXXX 120363…@g.us Dark News`'
+          );
           return;
         }
         if (!String(to).endsWith('@g.us') && !String(to).endsWith('@s.whatsapp.net')) {
-          await reply('Target should be a group `@g.us` (or a DM jid).');
+          await reply('Target should be a group `@g.us` (run `.id` in the group).');
           return;
         }
-        const rules = loadRules().filter((r) => !(r.from === from && r.to === to));
-        rules.push({
-          from,
-          to,
-          prefix,
-          includeMedia: true,
-          enabled: true,
-        });
-        saveRules(rules);
-        await reply(`Added forward:\n\`${from}\`\n→ \`${to}\`${prefix ? `\nprefix: ${prefix}` : ''}`);
+        try {
+          const resolved = await resolveFromArg(sock, fromTok);
+          if (!resolved?.jid || !isChannelJid(resolved.jid)) {
+            await reply('Could not get channel jid. Use a full channel link or `…@newsletter` id.');
+            return;
+          }
+          const from = resolved.jid;
+          const rules = loadRules().filter((r) => !(r.from === from && r.to === to));
+          const rule = {
+            from,
+            to,
+            includeMedia: true,
+            enabled: true,
+            footerBold: true,
+          };
+          if (footer) rule.footer = footer;
+          rules.push(rule);
+          saveRules(rules);
+          let msg = `Added forward:\n\`${from}\`\n→ \`${to}\``;
+          if (resolved.name) msg += `\nChannel: ${resolved.name}`;
+          if (footer) msg += `\nFooter (new line, bold):\n${toBoldLine(footer)}`;
+          await reply(msg);
+        } catch (e) {
+          await reply('Add failed: ' + (e.message || e));
+        }
         return;
       }
       if (sub === 'remove' || sub === 'rm' || sub === 'del') {
-        const from = args[1];
-        if (!from) {
-          await reply('Usage: `.cfwd remove <channelJid>`');
+        const fromTok = args[1];
+        if (!fromTok) {
+          await reply('Usage: `.cfwd remove <channelJid|link>`');
           return;
         }
-        const before = loadRules();
-        const rules = before.filter((r) => r.from !== from);
-        saveRules(rules);
-        await reply(`Removed ${before.length - rules.length} rule(s) for \`${from}\``);
+        try {
+          const resolved = await resolveFromArg(sock, fromTok);
+          const from = resolved?.jid || fromTok;
+          const before = loadRules();
+          const rules = before.filter((r) => r.from !== from);
+          saveRules(rules);
+          await reply(`Removed ${before.length - rules.length} rule(s) for \`${from}\``);
+        } catch (e) {
+          await reply('Remove failed: ' + (e.message || e));
+        }
         return;
       }
       await reply(usage());

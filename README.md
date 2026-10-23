@@ -110,28 +110,48 @@ MIT — see [LICENSE](LICENSE).
 See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 
+
 ## Channel → group forward (`feature/channel-forward`)
 
-Auto-relay WhatsApp **Channel** posts into a **group**, with optional text prefix/edit.
+Auto-relay WhatsApp **Channel** posts into a **group**, with optional footer edit.
 
-### Get a channel id (channel is not yours)
+### Get channel id from a post link
 
-1. Follow the channel on the **same number** the bot is paired with.
-2. Owner chat: `.cfwd log on`
-3. When the channel posts, server logs show `120363…@newsletter`.
-4. Or after a post: `.cfwd last`
+```text
+.cfwd resolve https://whatsapp.com/channel/XXXX/123
+```
 
-Group id: run `.id` inside the target group (`…@g.us`).
+Uses Baileys `newsletterMetadata('invite', code)` on the invite segment of the URL.
 
-### Commands (owner only)
+Or add in one step:
+
+```text
+.cfwd add https://whatsapp.com/channel/XXXX 120363…@g.us Dark News
+```
+
+### Bold footer on a new line
+
+Extra args after group jid become a **footer** appended after the last line:
+
+```
+original channel text
+
+*Dark News*
+```
+
+Change later:
+
+```text
+.cfwd footer <channelJid|link> Dark News
+```
+
+### Other
 
 | Command | Meaning |
 |---------|---------|
-| `.cfwd help` | Help |
 | `.cfwd list` | List rules |
-| `.cfwd add <channelJid> <groupJid> [prefix]` | Add rule |
-| `.cfwd remove <channelJid>` | Remove rules for that channel |
+| `.cfwd remove <channel>` | Remove |
 | `.cfwd log on\|off` | Log channel jids |
 | `.cfwd last` | Last seen channel jid |
 
-Rules are stored in `data/channel-forwards.json`.
+Rules: `data/channel-forwards.json`.
