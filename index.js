@@ -9,6 +9,7 @@ const msgStore = require('./lib/msgStore');
 const antiBan = require('./lib/antiBan');
 const { consumeSession, peekSession } = require('./lib/interactive');
 const channelForward = require('./lib/channelForward');
+const channelPoll = require('./lib/channelPoll');
 const channelForwardPlugin = require('./plugins/channel-forward');
 
 const {
@@ -245,6 +246,7 @@ async function startBot() {
       state.lastError = null;
       state.updatedAt = Date.now();
       console.log('[bot] connected as', sock.user?.id || '?', 'session=', sessionDir);
+      try { channelPoll.startChannelPoll(sock, config); } catch (e) { console.warn('[cfwd-poll]', e.message || e); }
       // creds already persist via creds.update; touch marker for operators
       try {
         fs.writeFileSync(
@@ -257,6 +259,7 @@ async function startBot() {
     }
 
     if (connection === 'close') {
+      try { channelPoll.stopChannelPoll(); } catch (_) {}
       state.connected = false;
       state.user = null;
       state.socketReady = false;
