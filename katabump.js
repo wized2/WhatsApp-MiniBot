@@ -2,33 +2,21 @@
 /**
  * Channel Forward — KataBump / VPS single-file runner
  * ====================================================
- * Branch: feature/channel-forward (channel → group only)
+ * Branch: feature/channel-forward
  *
- * Edit CONFIG below (or set env vars). Then:
  *   node katabump.js
+ *   (or paste this file as index.js on KataBump)
  *
- * - Uses phone for BOTH owner + pairing
- * - Clones / pulls feature/channel-forward by default
- * - Auto git-pull every 5 minutes; restarts on code change
- * - Binds 0.0.0.0 + PORT for hosting panels
+ * IMPORTANT: no shell ${} templates — KataBump/sh can mangle $ vars.
  */
 
 // ─────────────── CONFIG (edit here) ───────────────
 const CONFIG = {
-  // International digits, no +  (used for owner AND pairing)
   phone: process.env.PHONE || process.env.OWNER || '923073477752',
-
-  // HTTP port for pair site / health
   port: Number(process.env.PORT) || 20299,
-
-  // GitHub repo + branch (channel-forward = no games)
   repoUrl: process.env.REPO_URL || 'https://github.com/wized2/WhatsApp-MiniBot.git',
   branch: process.env.BRANCH || 'feature/channel-forward',
-
-  // Check for updates every N minutes
   updateEveryMin: Number(process.env.UPDATE_EVERY_MIN || 5),
-
-  // Working directory under /tmp (or RUN_ROOT)
   dirName: process.env.BOT_DIR || 'WhatsApp-ChannelFwd-run',
 };
 // ───────────────────────────────────────────────────
@@ -40,57 +28,65 @@ const path = require('path');
 const ROOT = path.join(process.env.RUN_ROOT || '/tmp', CONFIG.dirName);
 const PHONE = String(CONFIG.phone).replace(/\D/g, '');
 const PORT = CONFIG.port;
+const BRANCH = String(CONFIG.branch);
+const REPO = String(CONFIG.repoUrl);
 
-function log(...a) {
-  console.log(new Date().toISOString().slice(11, 19), ...a);
+function log() {
+  var a = Array.prototype.slice.call(arguments);
+  console.log.apply(console, [new Date().toISOString().slice(11, 19)].concat(a));
 }
 
-function sh(cmd, opts = {}) {
+function sh(cmd, opts) {
+  opts = opts || {};
   return execSync(cmd, {
     cwd: opts.cwd || ROOT,
     stdio: opts.silent ? 'pipe' : 'inherit',
-    env: { ...process.env, ...opts.env },
+    env: Object.assign({}, process.env, opts.env || {}),
     encoding: 'utf8',
   });
 }
 
+function q(s) {
+  // safe single-quoted shell string
+  return "'" + String(s).replace(/'/g, "'\\''") + "'";
+}
+
 function ensureRepo() {
-  const pkg = path.join(ROOT, 'package.json');
+  var pkg = path.join(ROOT, 'package.json');
   if (!fs.existsSync(pkg)) {
-    log('cloning', CONFIG.repoUrl, '@', CONFIG.branch);
+    log('cloning', REPO, '@', BRANCH);
     fs.mkdirSync(path.dirname(ROOT), { recursive: true });
     if (fs.existsSync(ROOT)) fs.rmSync(ROOT, { recursive: true, force: true });
-    sh(
-      `git clone --depth 1 -b ${CONFIG.branch} "${CONFIG.repoUrl}" "${ROOT}"`,
-      { cwd: path.dirname(ROOT) }
-    );
+    var cloneCmd =
+      'git clone --depth 1 -b ' + q(BRANCH) + ' ' + q(REPO) + ' ' + q(ROOT);
+    sh(cloneCmd, { cwd: path.dirname(ROOT) });
   } else {
-    // Ensure we track the configured branch (e.g. switched from main → channel-forward)
     try {
-      const cur = sh('git rev-parse --abbrev-ref HEAD', { silent: true }).trim();
-      if (cur !== CONFIG.branch) {
-        log('switching branch', cur, '→', CONFIG.branch);
-        sh('git fetch --depth 1 origin ' + CONFIG.branch, { silent: true });
-        sh('git checkout -B ' + CONFIG.branch + ' origin/' + CONFIG.branch, { silent: true });
+      var cur = sh('git rev-parse --abbrev-ref HEAD', { silent: true }).trim();
+      if (cur !== BRANCH) {
+        log('switching branch', cur, '->', BRANCH);
+        sh('git fetch --depth 1 origin ' + q(BRANCH), { silent: true });
+        sh('git checkout -B ' + q(BRANCH) + ' origin/' + BRANCH, { silent: true });
       }
     } catch (e) {
       log('branch ensure', e.message);
     }
   }
-  // Patch config.js phone/port without destroying other keys
-  const cfgPath = path.join(ROOT, 'config.js');
+
+  var cfgPath = path.join(ROOT, 'config.js');
   if (fs.existsSync(cfgPath)) {
-    let t = fs.readFileSync(cfgPath, 'utf8');
-    t = t.replace(/ownerNumber:\s*['"][^'"]*['"]/, `ownerNumber: '${PHONE}'`);
-    t = t.replace(/pairNumber:\s*['"][^'"]*['"]/, `pairNumber: '${PHONE}'`);
+    var t = fs.readFileSync(cfgPath, 'utf8');
+    t = t.replace(/ownerNumber:\s*['"][^'"]*['"]/, "ownerNumber: '" + PHONE + "'");
+    t = t.replace(/pairNumber:\s*['"][^'"]*['"]/, "pairNumber: '" + PHONE + "'");
     t = t.replace(
       /port:\s*Number\(process\.env\.PORT\)\s*\|\|\s*\d+/,
-      `port: Number(process.env.PORT) || ${PORT}`
+      'port: Number(process.env.PORT) || ' + PORT
     );
     fs.writeFileSync(cfgPath, t);
   }
+
   if (!fs.existsSync(path.join(ROOT, 'node_modules', 'baileys'))) {
-    log('npm install…');
+    log('npm install...');
     sh('npm install --omit=dev', { cwd: ROOT });
   }
 }
@@ -98,20 +94,20 @@ function ensureRepo() {
 function gitHead() {
   try {
     return sh('git rev-parse HEAD', { silent: true }).trim();
-  } catch {
+  } catch (e) {
     return '';
   }
 }
 
 function pullIfChanged() {
-  if (!CONFIG.repoUrl) return false;
+  if (!REPO) return false;
   try {
-    const before = gitHead();
-    sh('git fetch --depth 1 origin ' + CONFIG.branch, { silent: true });
-    sh('git reset --hard origin/' + CONFIG.branch, { silent: true });
-    const after = gitHead();
+    var before = gitHead();
+    sh('git fetch --depth 1 origin ' + q(BRANCH), { silent: true });
+    sh('git reset --hard origin/' + BRANCH, { silent: true });
+    var after = gitHead();
     if (before && after && before !== after) {
-      log('update detected', before.slice(0, 7), '→', after.slice(0, 7));
+      log('update detected', before.slice(0, 7), '->', after.slice(0, 7));
       try {
         sh('npm install --omit=dev', { cwd: ROOT });
       } catch (e) {
@@ -125,29 +121,28 @@ function pullIfChanged() {
   return false;
 }
 
-let child = null;
-let shuttingDown = false;
+var child = null;
+var shuttingDown = false;
 
 function startBot() {
   if (child) {
     try {
       child.kill('SIGTERM');
-    } catch (_) {}
+    } catch (e) {}
     child = null;
   }
-  log('starting channel-forward · phone', PHONE, '· port', PORT, '· branch', CONFIG.branch);
-  child = spawn('node', ['index.js'], {
+  log('starting channel-forward · phone', PHONE, '· port', PORT, '· branch', BRANCH);
+  child = spawn(process.execPath, ['index.js'], {
     cwd: ROOT,
-    env: {
-      ...process.env,
+    env: Object.assign({}, process.env, {
       PORT: String(PORT),
-      PHONE,
+      PHONE: PHONE,
       OWNER: PHONE,
       PAIR_NUMBER: PHONE,
-    },
+    }),
     stdio: 'inherit',
   });
-  child.on('exit', (code, signal) => {
+  child.on('exit', function (code, signal) {
     log('bot exited', code, signal || '');
     child = null;
     if (!shuttingDown) {
@@ -157,24 +152,24 @@ function startBot() {
 }
 
 function main() {
-  log('ChannelFwd runner · branch', CONFIG.branch, '· update every', CONFIG.updateEveryMin, 'min');
+  log('ChannelFwd runner · branch', BRANCH, '· update every', CONFIG.updateEveryMin, 'min');
   ensureRepo();
   pullIfChanged();
   startBot();
 
-  setInterval(() => {
+  setInterval(function () {
     if (pullIfChanged()) {
-      log('restarting for new code…');
+      log('restarting for new code...');
       startBot();
     }
   }, Math.max(1, CONFIG.updateEveryMin) * 60 * 1000);
 
-  process.on('SIGINT', () => {
+  process.on('SIGINT', function () {
     shuttingDown = true;
     if (child) child.kill('SIGTERM');
     process.exit(0);
   });
-  process.on('SIGTERM', () => {
+  process.on('SIGTERM', function () {
     shuttingDown = true;
     if (child) child.kill('SIGTERM');
     process.exit(0);
