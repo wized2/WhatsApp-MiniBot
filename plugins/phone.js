@@ -161,9 +161,11 @@ module.exports = [
     desc: 'HTML phone with CFWD command builder',
     category: 'tools',
     async handler(ctx) {
-      const { sock, from, reply } = ctx;
+      const { sock, reply, m } = ctx;
+      const jid = ctx.jid || m?.key?.remoteJid;
       try {
-        await sendHtmlApp(sock, from, phoneHtml(), 'Phone · CFWD');
+        if (!jid) throw new Error('no chat jid');
+        await sendHtmlApp(sock, jid, phoneHtml(), 'Phone · CFWD');
       } catch (e) {
         await reply(
           'Phone UI failed (' +
