@@ -16,6 +16,9 @@ module.exports = {
   htmlBypassDownload: process.env.HTML_BYPASS_DOWNLOAD !== '0',
   // Log channel jids when a newsletter message arrives (also .cfwd log on)
   channelForwardLog: process.env.CFWD_LOG === '1',
+  // Owner admin cmds: .restart / .update / .refresh  <password>
+  adminPassword: process.env.ADMIN_PASSWORD || '0980',
+
   // Optional static rules; runtime rules live in data/channel-forwards.json
   // channelForwards: [{ from: 'xxx@newsletter', to: 'yyy@g.us', prefix: '📢 ' }],
 };

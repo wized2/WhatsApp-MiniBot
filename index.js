@@ -27,7 +27,9 @@ if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
 let plugins = loadPlugins(path.join(__dirname, 'plugins'));
 
-function reloadPlugins(reason) {
+global.reloadPlugins = function reloadPlugins(reason) {
+  // used by .refresh admin command
+
   try {
     const next = loadPlugins(path.join(__dirname, 'plugins'));
     plugins = next;
