@@ -192,7 +192,7 @@ module.exports = [
           const st = loadSettings();
           await reply(
             `Global strip WhatsApp links: *${st.stripLinks ? 'on' : 'off'}*\n\n` +
-              '`.cfwd striplinks on` — remove channel/group links from every forward; skip posts that are only a link\n' +
+              '`.cfwd striplinks on` — remove channel/group links; skip link-only and join/follow promo posts\n' +
               '`.cfwd striplinks off` — keep links as in the original'
           );
           return;
@@ -201,7 +201,7 @@ module.exports = [
         const st = saveSettings({ ...loadSettings(), stripLinks: on });
         await reply(
           on
-            ? 'Strip links *on* for all rules.\nChannel/group WhatsApp URLs are removed from text; link-only posts are not forwarded.'
+            ? 'Strip links *on* for all rules.\nWA channel/group URLs removed; link-only and join/share promo posts are not forwarded.'
             : 'Strip links *off*. Links are kept as posted.'
         );
         return;
