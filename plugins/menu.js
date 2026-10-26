@@ -20,6 +20,7 @@ module.exports = {
       `${p}cfwd footer <link|jid> <text>\n` +
       `${p}phone — CFWD builder mini-app
 ${p}restart/update/refresh <pw>
+${p}cfwd striplinks on|off
 ${p}cfwd list · ${p}cfwd remove · ${p}cfwd last\n\n` +
       `*Owner*\n` +
       `${p}send <chatId> <text> — send a message to a jid`;

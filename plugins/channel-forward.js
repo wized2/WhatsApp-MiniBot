@@ -1,6 +1,8 @@
 const {
   loadRules,
   saveRules,
+  loadSettings,
+  saveSettings,
   isChannelJid,
   parseChannelLink,
   resolveChannelFromLink,
@@ -35,6 +37,11 @@ function usage() {
     `· \`.cfwd strip rm <jid|link> <phrase>\`
 ` +
     `· \`.cfwd strip list <jid|link>\`
+
+` +
+    `*Global (all rules)*
+` +
+    `· \`.cfwd striplinks on|off\` — strip WhatsApp channel/group links; skip link-only posts
 
 ` +
     `· \`.cfwd list\` · \`.cfwd remove\` · \`.cfwd last\``
@@ -82,8 +89,12 @@ module.exports = [
       }
       if (sub === 'list') {
         const rules = loadRules();
+        const st = loadSettings();
         if (!rules.length) {
-          await reply('No forward rules. Use `.cfwd add …`');
+          await reply(
+            'No forward rules. Use `.cfwd add …`\n' +
+              `Global strip links: *${st.stripLinks ? 'on' : 'off'}*`
+          );
           return;
         }
         const lines = rules.map((r, i) => {
@@ -93,7 +104,12 @@ module.exports = [
           if (r.enabled === false) s += ' (disabled)';
           return s;
         });
-        await reply('*Forward rules*\n' + lines.join('\n'));
+        await reply(
+          '*Forward rules*\n' +
+            lines.join('\n') +
+            `\n\nGlobal strip links: *${st.stripLinks ? 'on' : 'off'}*\n` +
+            'Toggle: `.cfwd striplinks on|off`'
+        );
         return;
       }
       if (sub === 'resolve' || sub === 'id' || sub === 'link') {
@@ -167,6 +183,27 @@ module.exports = [
         } catch (e) {
           await reply('Failed: ' + (e.message || e));
         }
+        return;
+      }
+
+      if (sub === 'striplinks' || sub === 'links' || sub === 'striplink') {
+        const val = (args[1] || '').toLowerCase();
+        if (val !== 'on' && val !== 'off' && val !== '1' && val !== '0' && val !== 'true' && val !== 'false') {
+          const st = loadSettings();
+          await reply(
+            `Global strip WhatsApp links: *${st.stripLinks ? 'on' : 'off'}*\n\n` +
+              '`.cfwd striplinks on` — remove channel/group links from every forward; skip posts that are only a link\n' +
+              '`.cfwd striplinks off` — keep links as in the original'
+          );
+          return;
+        }
+        const on = val === 'on' || val === '1' || val === 'true';
+        const st = saveSettings({ ...loadSettings(), stripLinks: on });
+        await reply(
+          on
+            ? 'Strip links *on* for all rules.\nChannel/group WhatsApp URLs are removed from text; link-only posts are not forwarded.'
+            : 'Strip links *off*. Links are kept as posted.'
+        );
         return;
       }
 
