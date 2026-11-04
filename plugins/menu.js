@@ -12,6 +12,7 @@ module.exports = {
       `*Main*\n` +
       `${p}menu — this help\n` +
       `${p}ping — latency\n` +
+      `${p}vv — unlock replied view-once media (owner)\n` +
       `${p}id — chat / group id\n\n` +
       `*Channel forward (owner)*\n` +
       `${p}cfwd help — full guide\n` +
