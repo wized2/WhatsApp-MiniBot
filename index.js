@@ -11,6 +11,7 @@ const { consumeSession, peekSession } = require('./lib/interactive');
 const channelForward = require('./lib/channelForward');
 const channelPoll = require('./lib/channelPoll');
 const channelForwardPlugin = require('./plugins/channel-forward');
+const antiNsfw = require('./lib/antiNsfw');
 
 const {
   default: makeWASocket,
@@ -326,6 +327,15 @@ async function startBot() {
         }
 
         if (type !== 'notify' && type !== 'append') continue;
+
+        // Group anti-NSFW (images only; skips self/admins/news captions)
+        if (antiBan.isGroup(jid)) {
+          try {
+            await antiNsfw.processMessage(sock, m, config);
+          } catch (e) {
+            console.error('[antiNsfw]', e.message || e);
+          }
+        }
 
         const text = extractText(m.message).trim();
         if (!text) continue;

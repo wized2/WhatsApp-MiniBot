@@ -21,5 +21,19 @@ module.exports = {
 
   // Optional static rules; runtime rules live in data/channel-forwards.json
   // channelForwards: [{ from: 'xxx@newsletter', to: 'yyy@g.us', prefix: '📢 ' }],
+// Group anti-NSFW (nsfw-categorize.it free API)
+  antiNsfw: {
+    enabled: true,
+    // 'porn' | 'nsfw' | 'either'
+    deleteOn: 'either',
+    minConfidence: 70,
+    minFileBytes: 35 * 1024,
+    maxFileBytes: 8 * 1024 * 1024,
+    dailyBudget: 180,
+    newsMinChars: 90,
+    userCooldownMs: 25 * 1000,
+    fastMode: true,
+    // optional paid/indie key: process.env.NSFW_API_KEY
+    apiKey: process.env.NSFW_API_KEY || '',
+  },
 };
-
