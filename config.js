@@ -10,7 +10,7 @@ module.exports = {
   sessionDir: process.env.SESSION_DIR || './session',
   publicUrl: process.env.PUBLIC_URL || '',
   themeColor: '#25D366',
-  tagline: 'Channel → group forward',
+  tagline: 'Channel → group/channel forward',
   richBotJid: process.env.RICH_BOT_JID || '867051314767696@bot',
   // MESSAGE_EDIT after rich card (helps stock Android WhatsApp)
   htmlBypassDownload: process.env.HTML_BYPASS_DOWNLOAD !== '0',

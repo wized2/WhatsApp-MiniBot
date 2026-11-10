@@ -2,7 +2,7 @@
 
 Branch: `feature/channel-forward`
 
-Baileys bot focused on **channel → group** auto-forward (no games / mini-apps).
+Baileys bot focused on **channel → group/channel** auto-forward (no games / mini-apps).
 
 ## Setup
 
@@ -14,7 +14,7 @@ npm start
 
 Open the pairing page (port from `config.port`), pair with WhatsApp.
 
-## Channel → group
+## Channel → group/channel
 
 ### Channel id from post link
 

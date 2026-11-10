@@ -14,14 +14,14 @@ function usage() {
   return (
     `*Channel forward*
 ` +
-    `Relay channel posts → group. Strip emoji / channel name. Footer optional.
+    `Relay channel posts → group or channel. Strip emoji / channel name. Footer optional.
 
 ` +
     `*Setup*
 ` +
     `· \`.cfwd resolve <channel-link>\`
 ` +
-    `· \`.cfwd add <link|jid> <groupJid> [footer]\`
+    `· \`.cfwd add <fromLink|jid> <toGroup|toChannel|link> [footer]\`
 ` +
     `· \`.cfwd footer <link|jid> <text>\`
 
@@ -70,7 +70,7 @@ module.exports = [
     name: 'cfwd',
     pattern: 'cfwd',
     aliases: ['channelfwd', 'forwardchannel', 'cf'],
-    desc: 'Channel → group auto-forward (owner)',
+    desc: 'Channel → group/channel auto-forward (owner)',
     category: 'owner',
     async handler(ctx) {
       const { arg, args, reply, sender, config, sock } = ctx;
@@ -125,7 +125,7 @@ module.exports = [
           if (r.name) text += `\nName: ${r.name}`;
           if (r.inviteCode) text += `\nInvite: \`${r.inviteCode}\``;
           if (r.postId) text += `\nPost id: ${r.postId}`;
-          text += `\n\nAdd:\n.cfwd add ${r.jid} <groupJid> Dark News`;
+          text += `\n\nAdd:\n.cfwd add ${r.jid} <groupJid|channelJid|channelLink> Dark News`;
           await reply(text);
         } catch (e) {
           await reply('Resolve failed: ' + (e.message || e));
@@ -302,26 +302,51 @@ module.exports = [
 
       if (sub === 'add') {
         const fromTok = args[1];
-        const to = args[2];
+        const toTok = args[2];
         const footer = args.slice(3).join(' ').trim();
-        if (!fromTok || !to) {
+        if (!fromTok || !toTok) {
           await reply(
-            'Usage:\n`.cfwd add <channelJid|link> <groupJid> [footer]`\n\n' +
-              'Example:\n`.cfwd add https://whatsapp.com/channel/XXXX 120363…@g.us Dark News`'
+            'Usage:\n`.cfwd add <fromChannelJid|link> <toGroupJid|toChannelJid|link> [footer]`\n\n' +
+              'Examples:\n' +
+              '`.cfwd add https://whatsapp.com/channel/XXXX 120363…@g.us Dark News`\n' +
+              '`.cfwd add https://whatsapp.com/channel/SRC https://whatsapp.com/channel/DST`'
           );
           return;
         }
-        if (!String(to).endsWith('@g.us') && !String(to).endsWith('@s.whatsapp.net')) {
-          await reply('Target should be a group `@g.us` (run `.id` in the group).');
-          return;
-        }
         try {
-          const resolved = await resolveFromArg(sock, fromTok);
-          if (!resolved?.jid || !isChannelJid(resolved.jid)) {
-            await reply('Could not get channel jid. Use a full channel link or `…@newsletter` id.');
+          const resolvedFrom = await resolveFromArg(sock, fromTok);
+          if (!resolvedFrom?.jid || !isChannelJid(resolvedFrom.jid)) {
+            await reply('Source must be a channel jid or whatsapp.com/channel/… link.');
             return;
           }
-          const from = resolved.jid;
+          const from = resolvedFrom.jid;
+
+          // Destination: group, DM, channel jid, or channel link
+          let to = String(toTok).trim();
+          let toName = null;
+          if (to.endsWith('@g.us') || to.endsWith('@s.whatsapp.net')) {
+            // group / user — keep as-is
+          } else if (isChannelJid(to) || parseChannelLink(to) || /^[A-Za-z0-9_-]{10,}$/.test(to)) {
+            const resolvedTo = await resolveFromArg(sock, to);
+            if (!resolvedTo?.jid || !isChannelJid(resolvedTo.jid)) {
+              await reply('Could not resolve target channel. Use `@newsletter` jid or a channel link.');
+              return;
+            }
+            to = resolvedTo.jid;
+            toName = resolvedTo.name || null;
+          } else {
+            await reply(
+              'Target must be a group `@g.us`, a channel `@newsletter`, or a whatsapp.com/channel/… link.\n' +
+                'Run `.id` in a group, or `.cfwd resolve <link>` for a channel.'
+            );
+            return;
+          }
+
+          if (from === to) {
+            await reply('Source and target channel cannot be the same.');
+            return;
+          }
+
           const rules = loadRules().filter((r) => !(r.from === from && r.to === to));
           const rule = {
             from,
@@ -333,8 +358,13 @@ module.exports = [
           if (footer) rule.footer = footer;
           rules.push(rule);
           saveRules(rules);
-          let msg = `Added forward:\n\`${from}\`\n→ \`${to}\``;
-          if (resolved.name) msg += `\nChannel: ${resolved.name}`;
+          const destKind = isChannelJid(to) ? 'channel' : to.endsWith('@g.us') ? 'group' : 'chat';
+          let msg = `Added forward (${destKind}):\n\`${from}\`\n→ \`${to}\``;
+          if (resolvedFrom.name) msg += `\nFrom: ${resolvedFrom.name}`;
+          if (toName) msg += `\nTo: ${toName}`;
+          if (isChannelJid(to)) {
+            msg += '\n\n_Bot must be an admin on the target channel to post there._';
+          }
           if (footer) msg += `\nFooter (new line, bold):\n${toBoldLine(footer)}`;
           await reply(msg);
         } catch (e) {
