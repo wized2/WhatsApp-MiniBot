@@ -32,6 +32,85 @@ module.exports = [
     },
   },
   {
+    name: 'checkupdate',
+    pattern: 'checkupdate',
+    aliases: ['check', 'cu', 'updatecheck'],
+    desc: 'Check for git updates (password)',
+    category: 'owner',
+    async handler(ctx) {
+      const { args, reply, config } = ctx;
+      if (!isOwner(ctx)) return reply('Owner only.');
+      if (!checkPassword(config, args)) return needPw(reply, 'checkupdate');
+      const root = path.join(__dirname, '..');
+      try {
+        await reply('Checking for updates…');
+        // Fetch quietly; do not change working tree
+        try {
+          await execAsync('git fetch --depth 1 origin', { cwd: root, timeout: 90000 });
+        } catch (fe) {
+          // still try to compare with whatever remote-tracking refs exist
+          console.warn('[checkupdate] fetch', fe.message || fe);
+        }
+        const { stdout: branchOut } = await execAsync('git rev-parse --abbrev-ref HEAD', {
+          cwd: root,
+          timeout: 15000,
+        });
+        const branch = String(branchOut || 'HEAD').trim();
+        const { stdout: localOut } = await execAsync('git rev-parse HEAD', {
+          cwd: root,
+          timeout: 15000,
+        });
+        const local = String(localOut || '').trim();
+        let remote = '';
+        try {
+          const { stdout: remoteOut } = await execAsync(
+            `git rev-parse origin/${branch}`,
+            { cwd: root, timeout: 15000 }
+          );
+          remote = String(remoteOut || '').trim();
+        } catch (_) {
+          try {
+            const { stdout: remoteOut } = await execAsync('git rev-parse @{u}', {
+              cwd: root,
+              timeout: 15000,
+            });
+            remote = String(remoteOut || '').trim();
+          } catch (e2) {
+            await reply(
+              `*Update check*\nBranch: \`${branch}\`\nLocal: \`${local.slice(0, 7)}\`\n` +
+                'Remote tracking branch not found. Run from a git clone with `origin`.'
+            );
+            return;
+          }
+        }
+        if (local === remote) {
+          await reply(
+            `*Up to date*\nBranch: \`${branch}\`\nCommit: \`${local.slice(0, 7)}\`\n\n` +
+              'No new commits on origin.'
+          );
+          return;
+        }
+        let log = '';
+        try {
+          const { stdout: logOut } = await execAsync(
+            `git log --oneline ${local.slice(0, 7)}..${remote.slice(0, 7)}`,
+            { cwd: root, timeout: 15000 }
+          );
+          log = String(logOut || '').trim().slice(0, 1200);
+        } catch (_) {}
+        await reply(
+          `*Update available*\nBranch: \`${branch}\`\n` +
+            `Local:  \`${local.slice(0, 7)}\`\n` +
+            `Remote: \`${remote.slice(0, 7)}\`\n` +
+            (log ? `\nNew commits:\n\`\`\`\n${log}\n\`\`\`\n` : '\n') +
+            `\nApply with:\n\`.update <password>\``
+        );
+      } catch (e) {
+        await reply('Check failed:\n' + (e.message || e));
+      }
+    },
+  },
+  {
     name: 'update',
     pattern: 'update',
     aliases: ['upgrade', 'pull'],
