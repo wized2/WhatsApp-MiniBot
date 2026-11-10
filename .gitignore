@@ -3,3 +3,8 @@ session/
 *.log
 .env
 .DS_Store
+data/channel-forwards.json
+data/cfwd-seen.json
+data/cfwd-settings.json
+forwards.json
+**/forwards.json
