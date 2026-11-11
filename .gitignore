@@ -8,3 +8,5 @@ data/cfwd-seen.json
 data/cfwd-settings.json
 forwards.json
 **/forwards.json
+data/warns.json
+data/group-*.json
