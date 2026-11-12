@@ -206,18 +206,20 @@ function renderCal(){
 
 /** Safe math eval for .calc command */
 function safeCalc(expr) {
-  const e = String(expr || '')
-    .replace(/×/g, '*')
-    .replace(/÷/g, '/')
+  let e = String(expr || '');
+  e = e
+    .replace(/[×xX]/g, '*')
+    .replace(/[÷]/g, '/')
+    .replace(/[−–—]/g, '-')
     .replace(/,/g, '')
-    .trim();
-  if (!e) throw new Error('empty');
-  if (!/^[-+*/%().\d\s^]+$/.test(e)) throw new Error('invalid chars');
-  // very small expression evaluator via Function after validation
+    .replace(/=/g, '');
+  e = e.replace(/[^0-9+\-*/%().^\s]/g, '').replace(/\s+/g, '');
+  if (!e) throw new Error('empty expression');
+  if (!/[0-9]/.test(e)) throw new Error('no numbers');
   const cleaned = e.replace(/\^/g, '**');
   // eslint-disable-next-line no-new-func
-  const val = Function('"use strict"; return (' + cleaned + ')')();
-  if (typeof val !== 'number' || !isFinite(val)) throw new Error('bad result');
+  const val = Function('"use strict";return (' + cleaned + ')')();
+  if (typeof val !== 'number' || !Number.isFinite(val)) throw new Error('bad result');
   return val;
 }
 
@@ -256,7 +258,7 @@ module.exports = [
         const v = safeCalc(expr);
         await ctx.reply(`🧮 \`${expr}\` = *${v}*`);
       } catch (e) {
-        await ctx.reply('Could not calculate. Use numbers and + - * / ( ).');
+        await ctx.reply('Calc error: ' + (e.message || e) + '\nTry: `.calc 2+2` or `.calc (10+5)/3`');
       }
     },
   },
