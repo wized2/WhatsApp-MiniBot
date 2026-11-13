@@ -10,6 +10,11 @@ const antiBan = require('./lib/antiBan');
 const { consumeSession, peekSession } = require('./lib/interactive');
 const channelForward = require('./lib/channelForward');
 const channelPoll = require('./lib/channelPoll');
+const botState = require('./lib/botState');
+
+// Never let a stray rejection kill the forwarder
+process.on('unhandledRejection', (e) => console.error('[unhandledRejection]', (e && e.stack) || e));
+process.on('uncaughtException', (e) => console.error('[uncaughtException]', (e && e.stack) || e));
 const channelForwardPlugin = require('./plugins/channel-forward');
 const antiNsfw = require('./lib/antiNsfw');
 
@@ -278,8 +283,7 @@ async function startBot() {
 
       if (
         statusCode === DisconnectReason.loggedOut ||
-        statusCode === 401 ||
-        statusCode === 405
+        statusCode === 401
       ) {
         clearSessionFiles();
       }
@@ -324,6 +328,13 @@ async function startBot() {
             console.error('[cfwd]', e.message || e);
           }
           continue;
+        }
+
+        // Idle (.stop): only owner control commands answer; nothing else runs
+        if (botState.isIdle()) {
+          const t0 = extractText(m.message).trim();
+          const h0 = t0 && matchPlugin(plugins, t0, config.prefix);
+          if (!h0 || !['stop', 'start', 'status'].includes(h0.plugin.name)) continue;
         }
 
         if (type !== 'notify' && type !== 'append') continue;
