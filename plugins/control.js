@@ -16,6 +16,7 @@ function statusText() {
     `*Bot:* ${st.idle ? 'IDLE (.stop)' : 'running'}${st.idle ? ' for ' + ago(st.since) : ''}\n` +
     `*Channels watched:* ${e.channels}\n` +
     `*Queue:* ${e.pending} pending\n` +
+    Object.entries(e.scans || {}).map(([j, x]) => `· ${j.slice(0, 12)}… scan ${ago(x.at)} ago: ${x.err ? 'ERR ' + x.err : x.count + ' fetched'}`).join('\n') + '\n' +
     `*Failed (last):* ${e.failed.length}${e.failed.length ? '\n' + e.failed.map((f) => '· ' + f.to + ': ' + f.error).join('\n') : ''}`
   );
 }
