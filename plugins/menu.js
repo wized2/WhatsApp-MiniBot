@@ -14,6 +14,7 @@ module.exports = {
       `${p}ping — latency\n` +
       `${p}id — chat / group id\n` +
       `${p}phone — tools mini-app (CFWD, calc, calendar)\n` +
+      `${p}pfp <number> — profile picture\n` +
       `${p}calc <expr> — calculator\n` +
       `${p}calendar — today’s date\n` +
       `${p}games — 8 mini games\n` +
