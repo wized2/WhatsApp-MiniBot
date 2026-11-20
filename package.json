@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node index.js",
     "pair": "node index.js",
-    "test": "node scripts/test-syntax.js"
+    "test": "node scripts/test-syntax.js && node --test test/selfheal.test.js"
   },
   "engines": {
     "node": ">=18"

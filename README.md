@@ -53,6 +53,21 @@ original channel text
 
 Rules file: `data/channel-forwards.json`.
 
+## Always-on / self-healing
+
+The forwarder is built to keep running without manual restarts:
+
+- Reconnects forever with backoff (2 s to 60 s). A failed start (network down, version lookup) retries by itself.
+- A watchdog notices a silent connection (no successful channel fetch for 4 min) and reconnects; if it keeps happening, or the bot stays offline 8 min, it restarts the process (under `katabump.js`).
+- A scan that hangs is abandoned after 2 min; one failing channel backs off without blocking the others.
+- Posts that fail while offline stay queued (not counted as failed) and are sent after reconnecting.
+- Only one copy per session: a newer bot stops an older one (two copies fight with code 440).
+- `GET /health` shows state (`?strict=1` returns 503 while disconnected). `katabump.js` restarts the bot if `/health` stops answering.
+
+Optional env: `MAX_RSS_MB` restarts on high memory; `KEEPALIVE_URL` (public URL) self-pings `/health` on hosts that sleep idle apps.
+
+Check with `npm test`.
+
 ## Note
 
 Unofficial WhatsApp automation can risk the number. Keep volume low; only relay channels you’re allowed to share.

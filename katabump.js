@@ -228,14 +228,34 @@ function startBot() {
       PAIR_NUMBER: PHONE,
       SESSION_DIR: SESSION_DIR,
       FORWARDS_JSON: FORWARDS_JSON,
+      MINIBOT_SUPERVISED: '1',
     }),
     stdio: 'inherit',
   });
-  child.on('exit', function (code, signal) {
+  var me = child;
+  healthFails = 0;
+  me.on('exit', function (code, signal) {
     log('bot exited', code, signal || '');
+    if (child !== me) return; // replaced on purpose, the new copy is already running
     child = null;
     if (!shuttingDown) setTimeout(startBot, 3000);
   });
+}
+
+// If the bot process is alive but its web server stops answering (hung event loop), restart it.
+var healthFails = 0;
+function healthCheck() {
+  if (!child || shuttingDown || typeof fetch !== 'function') return;
+  fetch('http://127.0.0.1:' + PORT + '/health', { signal: AbortSignal.timeout(10000) })
+    .then(function () { healthFails = 0; })
+    .catch(function () {
+      healthFails += 1;
+      if (healthFails >= 6 && child) {
+        log('bot not answering /health, restarting it');
+        healthFails = 0;
+        try { child.kill('SIGKILL'); } catch (e) {}
+      }
+    });
 }
 
 function main() {
@@ -246,6 +266,8 @@ function main() {
   ensureBot();
   pullBotIfChanged();
   startBot();
+
+  setInterval(healthCheck, 30 * 1000);
 
   setInterval(function () {
     if (pullBotIfChanged()) {

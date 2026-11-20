@@ -11,6 +11,10 @@ const { consumeSession, peekSession } = require('./lib/interactive');
 const channelForward = require('./lib/channelForward');
 const channelPoll = require('./lib/channelPoll');
 const botState = require('./lib/botState');
+const health = require('./lib/health');
+const cfEngine = require('./lib/cfwdEngine');
+const { createReconnector } = require('./lib/reconnect');
+const { startWatchdog } = require('./lib/watchdog');
 
 // Never let a stray rejection kill the forwarder
 process.on('unhandledRejection', (e) => console.error('[unhandledRejection]', (e && e.stack) || e));
@@ -30,6 +34,24 @@ const {
 const sessionDir = path.resolve(process.env.SESSION_DIR || config.sessionDir || './session');
 console.log('[session] dir', sessionDir);
 if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
+
+// One bot per session: two copies on one WhatsApp session keep kicking each other off (code 440)
+// and forwarding goes quiet. Stop an older copy of this bot if one is still running.
+(function takeOver() {
+  const lockFile = path.join(path.dirname(sessionDir), '.minibot.pid');
+  try {
+    const old = parseInt(fs.readFileSync(lockFile, 'utf8'), 10);
+    if (old && old !== process.pid && old !== process.ppid) {
+      let ours = false;
+      try { ours = /index\.js/.test(fs.readFileSync('/proc/' + old + '/cmdline', 'utf8')); } catch (_) {}
+      if (ours) {
+        console.log('[lock] stopping older bot process', old);
+        try { process.kill(old, 'SIGTERM'); } catch (_) {}
+      }
+    }
+  } catch (_) {}
+  try { fs.writeFileSync(lockFile, String(process.pid)); } catch (_) {}
+})();
 
 let plugins = loadPlugins(path.join(__dirname, 'plugins'));
 
@@ -91,6 +113,8 @@ function formatPairCode(code) {
 }
 
 let sockRef = null;
+let generation = 0; // bumped for every new socket; events from older sockets are ignored
+const SUPERVISED = process.env.MINIBOT_SUPERVISED === '1';
 let pairingInFlight = null;
 let waitedForQr = false;
 
@@ -105,9 +129,42 @@ function clearSessionFiles() {
   }
 }
 
+/** Detach and close a socket so nothing from it can fire again. creds.update stays so keys are saved. */
+function cleanupSocket(sock) {
+  if (!sock) return;
+  try { sock.ev.removeAllListeners('connection.update'); } catch (_) {}
+  try { sock.ev.removeAllListeners('messages.upsert'); } catch (_) {}
+  try { sock.end(undefined); } catch (_) {}
+}
+
+/** Drop the current socket (it is dead or silent) and reconnect with backoff. */
+function forceReconnect(sock, why) {
+  if (sock && sock !== sockRef) return; // an older socket, already replaced
+  console.warn('[bot] reconnecting:', why);
+  state.connected = false;
+  state.message = 'Reconnecting (' + why + ')…';
+  state.updatedAt = Date.now();
+  health.noteClose(why);
+  try { channelPoll.stopChannelPoll(); } catch (_) {}
+  cleanupSocket(sock || sockRef);
+  reconnector.schedule(undefined, why);
+}
+
 async function startBot() {
+  const gen = ++generation;
+  const isCurrent = () => gen === generation;
+  if (sockRef) cleanupSocket(sockRef); // never leave a zombie socket behind
   const { state: authState, saveCreds } = await useMultiFileAuthState(sessionDir);
-  const { version } = await fetchLatestBaileysVersion();
+  let version;
+  try {
+    ({ version } = await Promise.race([
+      fetchLatestBaileysVersion(),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('version lookup timed out')), 15000)),
+    ]));
+  } catch (e) {
+    // GitHub unreachable must not stop the bot: use the version bundled with Baileys
+    console.warn('[bot] version lookup failed, using bundled version:', (e && e.message) || e);
+  }
 
   // Custom browser labels produce DEAD pairing codes WhatsApp rejects.
 
@@ -121,7 +178,7 @@ async function startBot() {
   };
 
   const sock = makeWASocket({
-    version,
+    ...(version ? { version } : {}),
     logger: pino({ level: 'silent' }),
     printQRInTerminal: false,
     auth: {
@@ -131,6 +188,8 @@ async function startBot() {
     browser: Browsers.macOS('Chrome'),
     connectTimeoutMs: 60000,
     defaultQueryTimeoutMs: 60000,
+    keepAliveIntervalMs: 25000,
+    retryRequestDelayMs: 250,
     generateHighQualityLinkPreview: false,
     syncFullHistory: false,
     markOnlineOnConnect: false,
@@ -144,6 +203,7 @@ async function startBot() {
   pairingInFlight = null;
   state.socketReady = false;
   state.registered = !!sock.authState.creds.registered;
+  health.setRegistered(state.registered);
   state.lastError = null;
   state.message = state.registered ? 'Session found — connecting…' : 'Waiting for WhatsApp handshake…';
   state.updatedAt = Date.now();
@@ -226,6 +286,7 @@ async function startBot() {
   sock.ev.on('creds.update', saveCreds);
 
   sock.ev.on('connection.update', async (update) => {
+    if (!isCurrent()) return; // event from a replaced socket
     const { connection, lastDisconnect, qr } = update;
 
     if (qr) {
@@ -254,7 +315,12 @@ async function startBot() {
       state.lastError = null;
       state.updatedAt = Date.now();
       console.log('[bot] connected as', sock.user?.id || '?', 'session=', sessionDir);
-      try { channelPoll.startChannelPoll(sock, config); } catch (e) { console.warn('[cfwd-poll]', e.message || e); }
+      health.setRegistered(true);
+      health.noteOpen();
+      reconnector.opened();
+      try {
+        channelPoll.startChannelPoll(sock, config, { onDead: (why) => forceReconnect(sock, why) });
+      } catch (e) { console.warn('[cfwd-poll]', e.message || e); }
       // creds already persist via creds.update; touch marker for operators
       try {
         fs.writeFileSync(
@@ -268,6 +334,7 @@ async function startBot() {
 
     if (connection === 'close') {
       try { channelPoll.stopChannelPoll(); } catch (_) {}
+      health.noteClose(lastDisconnect?.error?.message || 'closed');
       state.connected = false;
       state.user = null;
       state.socketReady = false;
@@ -280,6 +347,9 @@ async function startBot() {
         : 'Disconnected (' + (statusCode || '?') + ') — reconnecting…';
       state.updatedAt = Date.now();
       console.log('[bot] close', statusCode, reason);
+      if (statusCode === 440) {
+        console.warn('[bot] this session is open somewhere else (440). Make sure only one copy of the bot runs.');
+      }
 
       if (
         statusCode === DisconnectReason.loggedOut ||
@@ -288,8 +358,11 @@ async function startBot() {
         clearSessionFiles();
       }
 
-      if (!loggedOut) {
-        setTimeout(() => startBot().catch(console.error), 2500);
+      cleanupSocket(sock);
+      if (loggedOut) {
+        health.noteLoggedOut();
+      } else {
+        reconnector.schedule(statusCode, reason);
       }
     }
   });
@@ -300,6 +373,7 @@ async function startBot() {
   } catch (_) {}
 
   sock.ev.on('messages.upsert', async (upsert) => {
+    if (!isCurrent()) return;
     const { messages, type } = upsert;
     // Process every delivery type for channel JIDs (notify/append/other).
     // Non-channel still limited to notify|append to avoid noise.
@@ -321,6 +395,7 @@ async function startBot() {
           if (typeof channelForwardPlugin.noteChannel === 'function') {
             channelForwardPlugin.noteChannel(jid);
           }
+          health.noteLive();
           console.log('[cfwd] channel upsert type=', type, 'from', jid, 'id=', m.key?.id);
           try {
             await channelForward.processMessage(sock, m, config);
@@ -470,7 +545,51 @@ async function startBot() {
   sock.__minibot = { config, plugins };
 }
 
-startBot().catch((e) => {
-  console.error('Fatal', e);
-  process.exit(1);
+// Reconnect forever with backoff: a failed start (network down, version lookup, …) retries by itself.
+const reconnector = createReconnector({ start: () => startBot(), log: (m) => console.log(m) });
+reconnector.startNow();
+
+// Watchdog: if forwarding goes quiet without WhatsApp saying so, reconnect (or restart the
+// process when a supervisor such as katabump.js will start it again).
+startWatchdog({
+  supervised: SUPERVISED,
+  log: (m) => console.log(m),
+  config: { maxRssMb: Number(process.env.MAX_RSS_MB) || 0 },
+  snapshot: () => {
+    const r = health.raw();
+    let channels = 0;
+    try { channels = cfEngine.status().channels; } catch (_) {}
+    return {
+      loggedOut: r.loggedOut,
+      idle: botState.isIdle(),
+      connected: r.connected,
+      registered: r.registered,
+      disconnectedSince: r.connected ? 0 : r.closeAt || r.startedAt,
+      connectedSince: r.openAt,
+      lastScanOk: r.scanOkAt,
+      channels,
+      rssMb: Math.round(process.memoryUsage().rss / 1048576),
+    };
+  },
+  reconnect: (why) => {
+    if (sockRef) forceReconnect(sockRef, 'watchdog: ' + why);
+    else reconnector.schedule(undefined, 'watchdog: ' + why);
+  },
+  restartProcess: (why) => {
+    console.error('[watchdog] exiting so the host restarts the bot:', why);
+    try { channelPoll.stopChannelPoll(); } catch (_) {}
+    setTimeout(() => process.exit(1), 800);
+  },
 });
+
+// Hosts that put idle apps to sleep: ping our own /health now and then (set KEEPALIVE_URL or PUBLIC_URL).
+(function keepAlive() {
+  const base = process.env.KEEPALIVE_URL || process.env.RENDER_EXTERNAL_URL || config.publicUrl || '';
+  if (!base || typeof fetch !== 'function') return;
+  const url = String(base).replace(/\/+$/, '') + '/health';
+  const t = setInterval(() => {
+    fetch(url, { signal: AbortSignal.timeout(15000) }).catch(() => {});
+  }, 4 * 60 * 1000);
+  if (t.unref) t.unref();
+  console.log('[keepalive] pinging', url, 'every 4 min');
+})();
