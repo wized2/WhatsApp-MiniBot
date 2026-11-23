@@ -107,3 +107,24 @@ test('different source channels to one target send in parallel; one source stays
   assert.ok(log.indexOf('end:a1') < log.indexOf('start:a2'), 'same source must stay in order: ' + log.join(','));
   assert.equal(E._pending().length, 0);
 });
+
+test('posts older than the age limit are not forwarded (live or queued)', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cfwd-'));
+  process.env.FORWARDS_JSON = path.join(dir, 'rules.json');
+  fs.writeFileSync(process.env.FORWARDS_JSON, JSON.stringify([{ from: '5@newsletter', to: '8@newsletter', enabled: true }]));
+  const E = require('../lib/cfwdEngine');
+  E._reset();
+  const sent = [];
+  const sock = { ws: { isOpen: true }, sendMessage: async (to, c) => { sent.push(c.text); return {}; } };
+  const now = Math.floor(Date.now() / 1000);
+  const mk = (id, text, ts) => ({ key: { remoteJid: '5@newsletter', id }, message: { conversation: text }, messageTimestamp: ts });
+  assert.equal(await E.handleMessage(sock, mk('O1', 'old', now - 3 * 3600), {}), false);
+  assert.equal(await E.handleMessage(sock, mk('F1', 'fresh', now - 120), {}), true);
+  await new Promise((r) => setTimeout(r, 600));
+  assert.deepEqual(sent, ['fresh']);
+  // an old job restored from disk is dropped, not sent
+  E._pending().push({ id: 'X>8@newsletter', jid: '5@newsletter', to: '8@newsletter', rule: { to: '8@newsletter' }, msg: mk('O2', 'stale', now - 5 * 3600), attempts: 0, next: 0, created: Date.now() });
+  await E.processQueue(sock);
+  assert.deepEqual(sent, ['fresh']);
+  assert.equal(E._pending().length, 0);
+});

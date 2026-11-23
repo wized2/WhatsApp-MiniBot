@@ -64,6 +64,8 @@ The forwarder is built to keep running without manual restarts:
 - Only one copy per session: a newer bot stops an older one (two copies fight with code 440).
 - `GET /health` shows state (`?strict=1` returns 503 while disconnected). `katabump.js` restarts the bot if `/health` stops answering.
 
+Posts older than 1 hour are never forwarded (also after the bot was off for days); change with `CFWD_MAX_AGE_MIN`. Scan speed: `CFWD_SCAN_MS`.
+
 Optional env: `MAX_RSS_MB` restarts on high memory; `KEEPALIVE_URL` (public URL) self-pings `/health` on hosts that sleep idle apps.
 
 Check with `npm test`.
