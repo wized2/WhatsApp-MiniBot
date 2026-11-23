@@ -70,3 +70,40 @@ test('engine detects closed sockets and connection errors', () => {
   }
   assert.equal(engine.isConnError(new Error('bad-request')), false);
 });
+
+/* ---- delivery speed ---- */
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+test('different source channels to one target send in parallel; one source stays in order', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cfwd-'));
+  process.env.FORWARDS_JSON = path.join(dir, 'rules.json');
+  fs.writeFileSync(process.env.FORWARDS_JSON, JSON.stringify([
+    { from: '1@newsletter', to: '9@newsletter', enabled: true },
+    { from: '2@newsletter', to: '9@newsletter', enabled: true },
+  ]));
+  const E = require('../lib/cfwdEngine');
+  E._reset();
+  const log = [];
+  let inflight = 0, peak = 0;
+  const sock = {
+    ws: { isOpen: true },
+    sendMessage: async (to, c) => {
+      inflight++; peak = Math.max(peak, inflight);
+      log.push('start:' + c.text);
+      await new Promise((r) => setTimeout(r, 120));
+      log.push('end:' + c.text);
+      inflight--;
+      return {};
+    },
+  };
+  const mk = (jid, id, text) => ({ key: { remoteJid: jid, id, fromMe: false }, message: { conversation: text }, messageTimestamp: Math.floor(Date.now() / 1000) });
+  await E.handleMessage(sock, mk('1@newsletter', 'A1', 'a1'), {});
+  await E.handleMessage(sock, mk('1@newsletter', 'A2', 'a2'), {});
+  await E.handleMessage(sock, mk('2@newsletter', 'B1', 'b1'), {});
+  await new Promise((r) => setTimeout(r, 1200));
+  assert.ok(peak >= 2, 'sources should overlap, peak=' + peak);
+  assert.ok(log.indexOf('end:a1') < log.indexOf('start:a2'), 'same source must stay in order: ' + log.join(','));
+  assert.equal(E._pending().length, 0);
+});
