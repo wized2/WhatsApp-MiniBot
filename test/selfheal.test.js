@@ -128,3 +128,26 @@ test('posts older than the age limit are not forwarded (live or queued)', async 
   assert.deepEqual(sent, ['fresh']);
   assert.equal(E._pending().length, 0);
 });
+
+test('identical headline posted again later is forwarded; same-id repeats and instant echoes are not', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cfwd-'));
+  process.env.FORWARDS_JSON = path.join(dir, 'rules.json');
+  fs.writeFileSync(process.env.FORWARDS_JSON, JSON.stringify([{ from: '6@newsletter', to: '7@newsletter', enabled: true }]));
+  const E = require('../lib/cfwdEngine');
+  E._reset();
+  const sent = [];
+  const sock = { ws: { isOpen: true }, sendMessage: async (to, c) => { sent.push(c.text); return {}; } };
+  const mk = (id) => ({ key: { remoteJid: '6@newsletter', id }, message: { conversation: 'Breaking: same text' }, messageTimestamp: Math.floor(Date.now() / 1000) });
+  assert.equal(await E.handleMessage(sock, mk('R1'), {}), true);
+  assert.equal(await E.handleMessage(sock, mk('R1'), {}), false, 'same id');
+  assert.equal(await E.handleMessage(sock, mk('R2'), {}), false, 'same content echoed within 3 min');
+  const realNow = Date.now;
+  Date.now = () => realNow() + 10 * 60 * 1000;
+  try {
+    assert.equal(await E.handleMessage(sock, mk('R3'), {}), true, 'same text 10 min later is a new post');
+  } finally { Date.now = realNow; }
+  for (const j of E._pending()) j.next = 0;
+  await E.processQueue(sock);
+  await new Promise((r) => setTimeout(r, 300));
+  assert.equal(sent.length, 2);
+});
