@@ -201,3 +201,10 @@ test('.api card is valid HTML with the server results embedded and a live fetch 
   const js = html.match(/<script>([\s\S]*)<\/script>/)[1];
   new Function(js); // syntax check
 });
+
+test('.bubble mini game html is self-contained and its script parses', () => {
+  const html = require('../plugins/bubble')._html();
+  assert.ok(html.length < 40000);
+  assert.ok(!/https?:\/\//.test(html.replace(/xmlns[^"]*"/g, '')), 'no network needed');
+  new Function(html.match(/<script>([\s\S]*)<\/script>/)[1]);
+});
