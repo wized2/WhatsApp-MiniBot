@@ -22,12 +22,14 @@ function collect() {
   let e = { pending: 0, failed: [], channels: 0, scans: {} };
   try { e = engine.status(); } catch (_) {}
   const problems = [];
+  const last = require('../lib/blackbox').recent(1)[0];
   if (!h.connected) problems.push('Not connected to WhatsApp');
   if (h.loggedOut) problems.push('Logged out: pair again');
   if (botState.isIdle()) problems.push('Bot is paused (.stop)');
   if (h.scanFails > 0) problems.push('Channel fetch failing (' + h.scanFails + 'x)');
   if (e.pending > 5) problems.push(e.pending + ' posts waiting to send');
   if (e.failed && e.failed.length) problems.push(e.failed.length + ' posts gave up');
+  if (last && problems.length) problems.push('Last event: ' + last.m.slice(0, 80));
   return {
     at: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
     ok: problems.length === 0,

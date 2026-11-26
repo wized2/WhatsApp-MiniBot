@@ -189,3 +189,25 @@ test('.bubble mini game html is self-contained and its script parses', () => {
   assert.ok(!/https?:\/\//.test(html.replace(/xmlns[^"]*"/g, '')), 'no network needed');
   new Function(html.match(/<script>([\s\S]*)<\/script>/)[1]);
 });
+
+test('black box keeps important console lines and collapses repeats; unstick resets a jammed queue', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bb-'));
+  process.env.FORWARDS_JSON = path.join(dir, 'rules.json');
+  const bb = require('../lib/blackbox');
+  bb.install();
+  console.warn('[watchdog] no incoming events for 31 min -> reconnecting');
+  console.warn('[watchdog] no incoming events for 31 min -> reconnecting');
+  console.log('[msg] noise that is not recorded');
+  const ev = bb.recent(5);
+  const w = ev.filter((e) => /watchdog/.test(e.m));
+  assert.equal(w.length, 1);
+  assert.equal(w[0].n, 2);
+  assert.ok(!ev.some((e) => /noise/.test(e.m)));
+  const E = require('../lib/cfwdEngine');
+  E._reset();
+  E._pending().push({ id: 'J', jid: '1@newsletter', to: '2@newsletter', rule: {}, msg: { key: {}, message: { conversation: 'x' } }, attempts: 0, next: Date.now() - 200000, created: Date.now() - 200000, busy: true });
+  require('../lib/health')._reset();
+  assert.equal(E.unstick(), false, 'busy job is not "waiting"');
+  E._pending()[0].busy = false;
+  assert.equal(E.unstick(), true);
+});

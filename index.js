@@ -17,6 +17,8 @@ const { createReconnector } = require('./lib/reconnect');
 const { startWatchdog } = require('./lib/watchdog');
 
 // Never let a stray rejection kill the forwarder
+require('./lib/blackbox').install();
+
 // The status saver was removed: delete its leftover rules file so no old settings linger.
 try {
   const f = require('./lib/jsonStore').filePath('status-saver.json');
