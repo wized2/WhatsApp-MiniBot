@@ -160,25 +160,6 @@ test('watchdog reconnects a connected socket that gets no incoming events', () =
   assert.equal(decide({ ...s, connectedSince: now - 60000 }, DEFAULTS, now).action, 'none');
 });
 
-test('status saver: target parsing and status filtering', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ss-'));
-  process.env.FORWARDS_JSON = path.join(dir, 'rules.json');
-  const ss = require('../lib/statusSaver');
-  assert.equal((await ss.resolveTarget({}, '+92 309 2801491')).jid, '923092801491@s.whatsapp.net');
-  assert.equal((await ss.resolveTarget({}, '123-456@g.us')).jid, '123-456@g.us');
-  assert.equal((await ss.resolveTarget({ groupGetInviteInfo: async () => ({ id: '77@g.us', subject: 'G' }) }, 'https://chat.whatsapp.com/AbC123')).jid, '77@g.us');
-  await assert.rejects(() => ss.resolveTarget({}, 'hello'));
-  ss.save({ enabled: true, target: '9@s.whatsapp.net', label: 'x', only: ['111111111'], skipOwn: true });
-  const sent = [];
-  const sock = { sendMessage: async (to, c) => { sent.push(c.text); return {}; } };
-  const st = (id, who, text) => ({ key: { remoteJid: 'status@broadcast', id, participant: who + '@s.whatsapp.net' }, message: { conversation: text }, messageTimestamp: 1 });
-  await ss.handle(sock, st('a', '222222222', 'no'));
-  await ss.handle(sock, st('b', '111111111', 'yes'));
-  await ss.handle(sock, st('b', '111111111', 'yes'));
-  assert.equal(sent.length, 1);
-  assert.match(sent[0], /yes/);
-});
-
 test('health card collects facts and renders; .api reports failures cleanly', async () => {
   const hc = require('../plugins/health-card');
   const d = hc._collect();

@@ -15,9 +15,14 @@ const health = require('./lib/health');
 const cfEngine = require('./lib/cfwdEngine');
 const { createReconnector } = require('./lib/reconnect');
 const { startWatchdog } = require('./lib/watchdog');
-const statusSaver = require('./lib/statusSaver');
 
 // Never let a stray rejection kill the forwarder
+// The status saver was removed: delete its leftover rules file so no old settings linger.
+try {
+  const f = require('./lib/jsonStore').filePath('status-saver.json');
+  if (fs.existsSync(f)) { fs.unlinkSync(f); console.log('[cleanup] removed old status-saver.json'); }
+} catch (e) { console.warn('[cleanup]', e.message || e); }
+
 process.on('unhandledRejection', (e) => console.error('[unhandledRejection]', (e && e.stack) || e));
 process.on('uncaughtException', (e) => console.error('[uncaughtException]', (e && e.stack) || e));
 const channelForwardPlugin = require('./plugins/channel-forward');
@@ -385,10 +390,7 @@ async function startBot() {
       try {
         if (!m || !m.message) continue;
         msgStore.put(m);
-        if (m.key?.remoteJid === 'status@broadcast') {
-          statusSaver.handle(sock, m).catch((e) => console.warn('[ss]', e.message || e));
-          continue;
-        }
+        if (m.key?.remoteJid === 'status@broadcast') continue;
         if (m.message.protocolMessage) continue;
         if (m.message.reactionMessage) continue;
 

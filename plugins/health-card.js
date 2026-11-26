@@ -2,7 +2,6 @@ const { isOwner } = require('../lib/owner');
 const health = require('../lib/health');
 const botState = require('../lib/botState');
 const engine = require('../lib/cfwdEngine');
-const ss = require('../lib/statusSaver');
 const { sendHtmlApp } = require('../lib/htmlTransport');
 
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -22,8 +21,6 @@ function collect() {
   const h = health.snapshot();
   let e = { pending: 0, failed: [], channels: 0, scans: {} };
   try { e = engine.status(); } catch (_) {}
-  const sc = ss.load();
-  const st = ss.stats();
   const problems = [];
   if (!h.connected) problems.push('Not connected to WhatsApp');
   if (h.loggedOut) problems.push('Logged out: pair again');
@@ -45,7 +42,6 @@ function collect() {
       ['Last live post', fmtAgo(h.lastLiveAgoS), true],
       ['Last send OK', fmtAgo(h.lastSendOkAgoS), true],
       ['Queue', e.pending + ' waiting', e.pending <= 5],
-      ['Status saver', sc.enabled ? 'ON → ' + (sc.label || sc.target) + ' (' + st.saved + ' saved)' : 'OFF', true],
       ['Memory', h.rssMb + ' MB', true],
     ],
   };

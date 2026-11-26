@@ -53,13 +53,6 @@ original channel text
 
 Rules file: `data/channel-forwards.json`.
 
-## Status saver (owner)
-
-Copies your contacts' statuses (text, photo, video, voice) to one chat.
-
-- `.ss <number | group link | channel link | here>` set the target and turn on
-- `.ss off` / `.ss on`, `.ss only <numbers>`, `.ss all`, `.ss` shows the state
-
 ## Always-on / self-healing
 
 The forwarder is built to keep running without manual restarts:
