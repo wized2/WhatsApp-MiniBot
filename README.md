@@ -58,7 +58,6 @@ Rules file: `data/channel-forwards.json`.
 The forwarder is built to keep running without manual restarts:
 
 - Reconnects forever with backoff (2 s to 60 s). A failed start (network down, version lookup) retries by itself.
-- If WhatsApp delivers no message event at all for 30 min on a connected socket, the watchdog reconnects it (silent-socket bug).
 - A watchdog notices a silent connection (no successful channel fetch for 4 min) and reconnects; if it keeps happening, or the bot stays offline 8 min, it restarts the process (under `katabump.js`).
 - A scan that hangs is abandoned after 2 min; one failing channel backs off without blocking the others.
 - Posts that fail while offline stay queued (not counted as failed) and are sent after reconnecting.

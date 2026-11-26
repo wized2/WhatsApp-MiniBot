@@ -50,7 +50,7 @@ test('reconnector resets attempts only after a stable connection', () => {
 
 test('watchdog: stale scan -> reconnect, dead -> restart, idle/loggedOut -> none', () => {
   const now = 10_000_000;
-  const base = { connected: true, registered: true, channels: 2, connectedSince: now - 3_600_000, lastScanOk: now - 10_000, lastInbound: now - 10_000, rssMb: 100 };
+  const base = { connected: true, registered: true, channels: 2, connectedSince: now - 3_600_000, lastScanOk: now - 10_000, rssMb: 100 };
   assert.equal(decide(base, DEFAULTS, now).action, 'none');
   assert.equal(decide({ ...base, lastScanOk: now - 5 * 60000 }, DEFAULTS, now).action, 'reconnect');
   assert.equal(decide({ ...base, channels: 0, lastScanOk: 0 }, DEFAULTS, now).action, 'none');
@@ -150,64 +150,4 @@ test('identical headline posted again later is forwarded; same-id repeats and in
   await E.processQueue(sock);
   await new Promise((r) => setTimeout(r, 300));
   assert.equal(sent.length, 2);
-});
-
-test('watchdog reconnects a connected socket that gets no incoming events', () => {
-  const now = 50_000_000;
-  const s = { connected: true, registered: true, channels: 0, connectedSince: now - 3_600_000, lastInbound: now - 40 * 60000, rssMb: 100 };
-  assert.equal(decide(s, DEFAULTS, now).action, 'reconnect');
-  assert.equal(decide({ ...s, lastInbound: now - 60000 }, DEFAULTS, now).action, 'none');
-  assert.equal(decide({ ...s, connectedSince: now - 60000 }, DEFAULTS, now).action, 'none');
-});
-
-test('health card collects facts and renders; .api reports failures cleanly', async () => {
-  const hc = require('../plugins/health-card');
-  const d = hc._collect();
-  assert.ok(Array.isArray(d.rows) && d.rows.length > 5);
-  assert.match(hc._text(d), /Bot health/);
-  const api = require('../plugins/api-test');
-  const orig = global.fetch;
-  global.fetch = async () => { throw Object.assign(new Error('fetch failed'), { cause: { code: 'ENOTFOUND' } }); };
-  try {
-    const r = await api._probe({ name: 'X', url: 'https://x.invalid', pick: () => '' });
-    assert.equal(r.ok, false);
-    assert.equal(r.err, 'ENOTFOUND');
-  } finally { global.fetch = orig; }
-});
-
-test('.api card is valid HTML with the server results embedded and a live fetch button', () => {
-  const html = require('../plugins/api-test')._card([{ ok: true, name: 'A', ms: 5 }, { ok: false, name: '</script>B', err: 'x' }]);
-  assert.match(html, /Test from mini app/);
-  assert.ok(!html.includes('</script>B'), 'results must be escaped');
-  const js = html.match(/<script>([\s\S]*)<\/script>/)[1];
-  new Function(js); // syntax check
-});
-
-test('.bubble mini game html is self-contained and its script parses', () => {
-  const html = require('../plugins/bubble')._html();
-  assert.ok(html.length < 40000);
-  assert.ok(!/https?:\/\//.test(html.replace(/xmlns[^"]*"/g, '')), 'no network needed');
-  new Function(html.match(/<script>([\s\S]*)<\/script>/)[1]);
-});
-
-test('black box keeps important console lines and collapses repeats; unstick resets a jammed queue', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bb-'));
-  process.env.FORWARDS_JSON = path.join(dir, 'rules.json');
-  const bb = require('../lib/blackbox');
-  bb.install();
-  console.warn('[watchdog] no incoming events for 31 min -> reconnecting');
-  console.warn('[watchdog] no incoming events for 31 min -> reconnecting');
-  console.log('[msg] noise that is not recorded');
-  const ev = bb.recent(5);
-  const w = ev.filter((e) => /watchdog/.test(e.m));
-  assert.equal(w.length, 1);
-  assert.equal(w[0].n, 2);
-  assert.ok(!ev.some((e) => /noise/.test(e.m)));
-  const E = require('../lib/cfwdEngine');
-  E._reset();
-  E._pending().push({ id: 'J', jid: '1@newsletter', to: '2@newsletter', rule: {}, msg: { key: {}, message: { conversation: 'x' } }, attempts: 0, next: Date.now() - 200000, created: Date.now() - 200000, busy: true });
-  require('../lib/health')._reset();
-  assert.equal(E.unstick(), false, 'busy job is not "waiting"');
-  E._pending()[0].busy = false;
-  assert.equal(E.unstick(), true);
 });

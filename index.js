@@ -17,14 +17,6 @@ const { createReconnector } = require('./lib/reconnect');
 const { startWatchdog } = require('./lib/watchdog');
 
 // Never let a stray rejection kill the forwarder
-require('./lib/blackbox').install();
-
-// The status saver was removed: delete its leftover rules file so no old settings linger.
-try {
-  const f = require('./lib/jsonStore').filePath('status-saver.json');
-  if (fs.existsSync(f)) { fs.unlinkSync(f); console.log('[cleanup] removed old status-saver.json'); }
-} catch (e) { console.warn('[cleanup]', e.message || e); }
-
 process.on('unhandledRejection', (e) => console.error('[unhandledRejection]', (e && e.stack) || e));
 process.on('uncaughtException', (e) => console.error('[uncaughtException]', (e && e.stack) || e));
 const channelForwardPlugin = require('./plugins/channel-forward');
@@ -386,7 +378,6 @@ async function startBot() {
     // Process every delivery type for channel JIDs (notify/append/other).
     // Non-channel still limited to notify|append to avoid noise.
     if (!Array.isArray(messages) || !messages.length) return;
-    health.noteInbound();
 
     for (const m of messages) {
       try {
@@ -576,7 +567,6 @@ startWatchdog({
       disconnectedSince: r.connected ? 0 : r.closeAt || r.startedAt,
       connectedSince: r.openAt,
       lastScanOk: r.scanOkAt,
-      lastInbound: r.inboundAt,
       channels,
       rssMb: Math.round(process.memoryUsage().rss / 1048576),
     };

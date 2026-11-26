@@ -1,7 +1,7 @@
 module.exports = {
   name: 'ping',
   pattern: 'ping',
-  aliases: ['speed', 'up'],
+  aliases: ['speed'],
   desc: 'Latency check',
   category: 'main',
   async handler({ reply }) {
