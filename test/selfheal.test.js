@@ -178,3 +178,18 @@ test('status saver: target parsing and status filtering', async () => {
   assert.equal(sent.length, 1);
   assert.match(sent[0], /yes/);
 });
+
+test('health card collects facts and renders; .api reports failures cleanly', async () => {
+  const hc = require('../plugins/health-card');
+  const d = hc._collect();
+  assert.ok(Array.isArray(d.rows) && d.rows.length > 5);
+  assert.match(hc._text(d), /Bot health/);
+  const api = require('../plugins/api-test');
+  const orig = global.fetch;
+  global.fetch = async () => { throw Object.assign(new Error('fetch failed'), { cause: { code: 'ENOTFOUND' } }); };
+  try {
+    const r = await api._probe({ name: 'X', url: 'https://x.invalid', pick: () => '' });
+    assert.equal(r.ok, false);
+    assert.equal(r.err, 'ENOTFOUND');
+  } finally { global.fetch = orig; }
+});
