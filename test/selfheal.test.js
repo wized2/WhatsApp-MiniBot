@@ -193,3 +193,11 @@ test('health card collects facts and renders; .api reports failures cleanly', as
     assert.equal(r.err, 'ENOTFOUND');
   } finally { global.fetch = orig; }
 });
+
+test('.api card is valid HTML with the server results embedded and a live fetch button', () => {
+  const html = require('../plugins/api-test')._card([{ ok: true, name: 'A', ms: 5 }, { ok: false, name: '</script>B', err: 'x' }]);
+  assert.match(html, /Test from mini app/);
+  assert.ok(!html.includes('</script>B'), 'results must be escaped');
+  const js = html.match(/<script>([\s\S]*)<\/script>/)[1];
+  new Function(js); // syntax check
+});
