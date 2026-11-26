@@ -50,7 +50,7 @@ test('reconnector resets attempts only after a stable connection', () => {
 
 test('watchdog: stale scan -> reconnect, dead -> restart, idle/loggedOut -> none', () => {
   const now = 10_000_000;
-  const base = { connected: true, registered: true, channels: 2, connectedSince: now - 3_600_000, lastScanOk: now - 10_000, rssMb: 100 };
+  const base = { connected: true, registered: true, channels: 2, connectedSince: now - 3_600_000, lastScanOk: now - 10_000, lastInbound: now - 10_000, rssMb: 100 };
   assert.equal(decide(base, DEFAULTS, now).action, 'none');
   assert.equal(decide({ ...base, lastScanOk: now - 5 * 60000 }, DEFAULTS, now).action, 'reconnect');
   assert.equal(decide({ ...base, channels: 0, lastScanOk: 0 }, DEFAULTS, now).action, 'none');
@@ -150,4 +150,31 @@ test('identical headline posted again later is forwarded; same-id repeats and in
   await E.processQueue(sock);
   await new Promise((r) => setTimeout(r, 300));
   assert.equal(sent.length, 2);
+});
+
+test('watchdog reconnects a connected socket that gets no incoming events', () => {
+  const now = 50_000_000;
+  const s = { connected: true, registered: true, channels: 0, connectedSince: now - 3_600_000, lastInbound: now - 40 * 60000, rssMb: 100 };
+  assert.equal(decide(s, DEFAULTS, now).action, 'reconnect');
+  assert.equal(decide({ ...s, lastInbound: now - 60000 }, DEFAULTS, now).action, 'none');
+  assert.equal(decide({ ...s, connectedSince: now - 60000 }, DEFAULTS, now).action, 'none');
+});
+
+test('status saver: target parsing and status filtering', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ss-'));
+  process.env.FORWARDS_JSON = path.join(dir, 'rules.json');
+  const ss = require('../lib/statusSaver');
+  assert.equal((await ss.resolveTarget({}, '+92 309 2801491')).jid, '923092801491@s.whatsapp.net');
+  assert.equal((await ss.resolveTarget({}, '123-456@g.us')).jid, '123-456@g.us');
+  assert.equal((await ss.resolveTarget({ groupGetInviteInfo: async () => ({ id: '77@g.us', subject: 'G' }) }, 'https://chat.whatsapp.com/AbC123')).jid, '77@g.us');
+  await assert.rejects(() => ss.resolveTarget({}, 'hello'));
+  ss.save({ enabled: true, target: '9@s.whatsapp.net', label: 'x', only: ['111111111'], skipOwn: true });
+  const sent = [];
+  const sock = { sendMessage: async (to, c) => { sent.push(c.text); return {}; } };
+  const st = (id, who, text) => ({ key: { remoteJid: 'status@broadcast', id, participant: who + '@s.whatsapp.net' }, message: { conversation: text }, messageTimestamp: 1 });
+  await ss.handle(sock, st('a', '222222222', 'no'));
+  await ss.handle(sock, st('b', '111111111', 'yes'));
+  await ss.handle(sock, st('b', '111111111', 'yes'));
+  assert.equal(sent.length, 1);
+  assert.match(sent[0], /yes/);
 });

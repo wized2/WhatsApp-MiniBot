@@ -15,6 +15,7 @@ const health = require('./lib/health');
 const cfEngine = require('./lib/cfwdEngine');
 const { createReconnector } = require('./lib/reconnect');
 const { startWatchdog } = require('./lib/watchdog');
+const statusSaver = require('./lib/statusSaver');
 
 // Never let a stray rejection kill the forwarder
 process.on('unhandledRejection', (e) => console.error('[unhandledRejection]', (e && e.stack) || e));
@@ -378,12 +379,16 @@ async function startBot() {
     // Process every delivery type for channel JIDs (notify/append/other).
     // Non-channel still limited to notify|append to avoid noise.
     if (!Array.isArray(messages) || !messages.length) return;
+    health.noteInbound();
 
     for (const m of messages) {
       try {
         if (!m || !m.message) continue;
         msgStore.put(m);
-        if (m.key?.remoteJid === 'status@broadcast') continue;
+        if (m.key?.remoteJid === 'status@broadcast') {
+          statusSaver.handle(sock, m).catch((e) => console.warn('[ss]', e.message || e));
+          continue;
+        }
         if (m.message.protocolMessage) continue;
         if (m.message.reactionMessage) continue;
 
@@ -567,6 +572,7 @@ startWatchdog({
       disconnectedSince: r.connected ? 0 : r.closeAt || r.startedAt,
       connectedSince: r.openAt,
       lastScanOk: r.scanOkAt,
+      lastInbound: r.inboundAt,
       channels,
       rssMb: Math.round(process.memoryUsage().rss / 1048576),
     };
